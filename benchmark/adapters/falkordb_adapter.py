@@ -36,7 +36,20 @@ class FalkorDBAdapter(GraphAdapter):
         # typically doesn't set FALKORDB_USER at all, so this defaults to None.
         username = os.getenv("FALKORDB_USER") or None
         graph_name = os.getenv("FALKORDB_GRAPH", "cit_hepph")
-        self.client = FalkorDB(host=host, port=port, username=username, password=password, ssl=True)
+        # Confirmed against a real FalkorDB Cloud free instance: ssl=True
+        # hangs until socket_timeout on this endpoint (TLS handshake never
+        # completes), while ssl=False connects and queries in ~2s. Overridable
+        # via FALKORDB_SSL for instances that do require it.
+        use_ssl = os.getenv("FALKORDB_SSL", "false").lower() == "true"
+        self.client = FalkorDB(
+            host=host,
+            port=port,
+            username=username,
+            password=password,
+            ssl=use_ssl,
+            socket_connect_timeout=15,
+            socket_timeout=15,
+        )
         self.graph = self.client.select_graph(graph_name)
 
     def close(self) -> None:
