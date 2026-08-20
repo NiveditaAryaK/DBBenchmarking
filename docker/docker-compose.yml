@@ -1,0 +1,48 @@
+# Self-hosted comparators, resource-capped to match CognoDB's provisioned c0
+# free instance (0.5 vCPU, 512MB RAM — see README "Fairness & resource
+# parity" for why 512MB and not the 256MB the assignment PDF describes).
+#
+# `mem_limit`/`cpus` (legacy top-level fields, not `deploy.resources.limits`)
+# are used deliberately: they're applied by a plain `docker compose up` on a
+# single host, with no swarm mode required — `deploy.resources.limits` only
+# takes effect under `docker stack deploy`.
+#
+# Region/client-machine parity is NOT something this file controls — Docker
+# doesn't know or care what region it's running in. That's a *deployment*
+# decision: run this compose file on a small cloud VM in the same region as
+# the benchmark client (both in us-east4, matching CognoDB), not on a
+# developer laptop. See README "Client machine and region" for the exact
+# setup and why co-locating self-hosted DBs with the client on the same
+# laptop would give them an unfair zero-network-hop advantage over the
+# managed clouds.
+#
+# Usage:
+#   docker compose -f docker/docker-compose.yml up -d
+#   docker compose -f docker/docker-compose.yml down -v   # wipe volumes too
+
+services:
+  memgraph:
+    image: memgraph/memgraph:2.18.1
+    ports:
+      - "7688:7687"
+    mem_limit: "512m"
+    memswap_limit: "512m"
+    cpus: 0.5
+    volumes:
+      - memgraph-data:/var/lib/memgraph
+
+  arangodb:
+    image: arangodb:3.12
+    ports:
+      - "8529:8529"
+    mem_limit: "512m"
+    memswap_limit: "512m"
+    cpus: 0.5
+    environment:
+      ARANGO_ROOT_PASSWORD: "changeme"
+    volumes:
+      - arangodb-data:/var/lib/arangodb3
+
+volumes:
+  memgraph-data:
+  arangodb-data:
