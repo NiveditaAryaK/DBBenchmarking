@@ -21,11 +21,22 @@ from benchmark.config import MIXED_WRITE_PROPERTY
 
 class FalkorDBAdapter(GraphAdapter):
     def connect(self) -> None:
-        host = os.getenv("FALKORDB_HOST")
-        port = int(os.getenv("FALKORDB_PORT", "6379"))
+        host = os.getenv("FALKORDB_HOST", "")
+        # FalkorDB Cloud dashboards often show the endpoint as "host:port" in
+        # one field — strip an embedded port so FALKORDB_HOST can be pasted
+        # either as host-only or host:port without breaking the connection.
+        if ":" in host:
+            host, _, embedded_port = host.rpartition(":")
+            port = int(os.getenv("FALKORDB_PORT") or embedded_port)
+        else:
+            port = int(os.getenv("FALKORDB_PORT", "6379"))
         password = os.getenv("FALKORDB_PASSWORD")
+        # FalkorDB Cloud instances use Redis ACL auth, which requires a
+        # username (not just a password) — self-hosted/local FalkorDB
+        # typically doesn't set FALKORDB_USER at all, so this defaults to None.
+        username = os.getenv("FALKORDB_USER") or None
         graph_name = os.getenv("FALKORDB_GRAPH", "cit_hepph")
-        self.client = FalkorDB(host=host, port=port, password=password, ssl=True)
+        self.client = FalkorDB(host=host, port=port, username=username, password=password, ssl=True)
         self.graph = self.client.select_graph(graph_name)
 
     def close(self) -> None:

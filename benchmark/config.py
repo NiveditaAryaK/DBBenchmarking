@@ -144,7 +144,7 @@ PLATFORMS: dict[str, PlatformSpec] = {
         advertised_disk="shared (RAM-backed)",
         region_note="Free cloud instance; benchmark client region documented in README",
         required_env=("FALKORDB_HOST", "FALKORDB_PORT", "FALKORDB_PASSWORD"),
-        optional_env=("FALKORDB_GRAPH",),
+        optional_env=("FALKORDB_GRAPH", "FALKORDB_USER"),
     ),
     "memgraph": PlatformSpec(
         id="memgraph",
