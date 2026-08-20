@@ -266,8 +266,25 @@ def main() -> None:
         w.writerows(sample_edges)
 
     # --- deterministic query start-node / filter-value sample --------------
+    # Warmup and measured items are disjoint, dedicated sets — not "the first
+    # 20 of the 150 measured ones" — so there's no ambiguity about which
+    # queries are discarded warm-up vs. which contribute to p50/p95, and
+    # every platform still gets the exact same 170 items in the same roles.
     query_rng = random.Random(config.RANDOM_QUERY_SEED)
-    n_queries = config.MEASURED_ITERATIONS
+    n_warmup = config.WARMUP_ITERATIONS
+    n_measured = config.MEASURED_ITERATIONS
+    n_total = n_warmup + n_measured
+
+    def sample_pool(pool: list, k: int) -> list:
+        # A benchmark should fail loudly on a broken precondition, not
+        # silently sample fewer items and quietly change what "150 measured
+        # iterations" means run to run.
+        if len(pool) < k:
+            raise RuntimeError(f"Query pool has only {len(pool)} items; {k} are required.")
+        return query_rng.sample(pool, k)
+
+    def split(items: list) -> dict:
+        return {"warmup": items[:n_warmup], "measured": items[n_warmup:]}
 
     traversal_pool = sorted(n for n in sample_nodes if out_deg[n] >= config.QUERY_MIN_OUT_DEGREE)
     lookup_pool = sorted(sample_nodes)
@@ -275,15 +292,14 @@ def main() -> None:
     # nodes with no recorded date are not eligible filter targets.
     indexed_lookup_pool = sorted(years_by_node.keys())
 
-    traversal_sample = query_rng.sample(traversal_pool, min(n_queries, len(traversal_pool)))
-    lookup_sample = query_rng.sample(lookup_pool, min(n_queries, len(lookup_pool)))
-    # Sampling *years* (with replacement) for the filter workload — each
-    # query is "WHERE year = $y", and repeated years are realistic (a year
-    # matches many papers), unlike point-lookup keys which should be distinct.
-    indexed_lookup_node_sample = query_rng.sample(
-        indexed_lookup_pool, min(n_queries, len(indexed_lookup_pool))
-    )
-    indexed_lookup_year_sample = [years_by_node[n] for n in indexed_lookup_node_sample]
+    lookup_sample = split(sample_pool(lookup_pool, n_total))
+    traversal_sample = split(sample_pool(traversal_pool, n_total))
+    # Sample distinct nodes with real year metadata, then use their years as
+    # filter values. Year values may naturally repeat because many papers
+    # share the same publication year; this reflects the actual property
+    # distribution, not an intentional with-replacement draw.
+    indexed_lookup_node_sample = sample_pool(indexed_lookup_pool, n_total)
+    indexed_lookup_year_sample = split([years_by_node[n] for n in indexed_lookup_node_sample])
 
     with open(config.QUERY_SAMPLE_FILE, "w") as f:
         json.dump(
@@ -331,9 +347,12 @@ def main() -> None:
             "traversal_pool_size": len(traversal_pool),
             "traversal_min_out_degree": config.QUERY_MIN_OUT_DEGREE,
             "indexed_lookup_pool_size": len(indexed_lookup_pool),
-            "point_lookup_sampled": len(lookup_sample),
-            "traversal_sampled": len(traversal_sample),
-            "indexed_lookup_sampled": len(indexed_lookup_year_sample),
+            "warmup_iterations": n_warmup,
+            "measured_iterations": n_measured,
+            "point_lookup_sampled": len(lookup_sample["warmup"]) + len(lookup_sample["measured"]),
+            "traversal_sampled": len(traversal_sample["warmup"]) + len(traversal_sample["measured"]),
+            "indexed_lookup_sampled": len(indexed_lookup_year_sample["warmup"])
+            + len(indexed_lookup_year_sample["measured"]),
         },
     }
     with open(config.DATASET_MANIFEST, "w") as f:
