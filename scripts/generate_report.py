@@ -58,28 +58,39 @@ plt.rcParams.update(
 )
 
 
+MERGE_FIELDS = ("load", "read_workloads", "footprint", "mixed_workload_sweep")
+
+
 def load_latest_results() -> dict:
-    """Latest status='ok' result per platform (falls back to the latest
-    result regardless of status if nothing succeeded, so failures are still
-    visible in the report instead of silently omitted)."""
-    by_platform: dict[str, dict] = {}
+    """Per platform: status/error/timestamp come from the single most recent
+    run attempt (so a failure is never hidden by an earlier success), but
+    each of load/read_workloads/footprint/mixed_workload_sweep is backfilled
+    independently from the latest status='ok' run that actually populated
+    that field. `bench` runs have load=null by design (they don't re-load
+    data) — picking "the latest result of any kind" naively would blank out
+    real ingest metrics from an earlier `load`/`all` run every time a
+    bench-only run is the most recent one. This merges instead of clobbering."""
+    runs_by_platform: dict[str, list[dict]] = {}
     for path in sorted(config.RESULTS_RAW.glob("*.json")):
         with open(path) as f:
             result = json.load(f)
         pid = result.get("id")
         if not pid:
             continue
-        existing = by_platform.get(pid)
-        if existing is None:
-            by_platform[pid] = result
-            continue
-        existing_ok = existing.get("status") == "ok"
-        new_ok = result.get("status") == "ok"
-        if (new_ok and not existing_ok) or (
-            new_ok == existing_ok and result["timestamp_utc"] > existing["timestamp_utc"]
-        ):
-            by_platform[pid] = result
-    return by_platform
+        runs_by_platform.setdefault(pid, []).append(result)
+
+    merged: dict[str, dict] = {}
+    for pid, runs in runs_by_platform.items():
+        runs_sorted = sorted(runs, key=lambda r: r["timestamp_utc"])
+        out = dict(runs_sorted[-1])  # status/error/timestamp/spec from the truly latest attempt
+        ok_runs = [r for r in runs_sorted if r.get("status") == "ok"]
+        for field in MERGE_FIELDS:
+            out[field] = None
+            for r in ok_runs:  # oldest -> newest, so the last hit is the latest populated one
+                if r.get(field):
+                    out[field] = r[field]
+        merged[pid] = out
+    return merged
 
 
 def _fmt(val, digits=1):
@@ -127,7 +138,17 @@ def compute_winners(results: dict) -> list[dict]:
             if best is None or (v < best[1] if pick_min else v > best[1]):
                 best = (pid, v)
         if best:
-            winners.append({"workload": label, "platform": _platform_name(best[0]), "value": f"{best[1]:.2f} {unit}"})
+            pid, val = best
+            # Self-hosted comparators (Memgraph, ArangoDB) ran co-located with
+            # the benchmark client — a real network-latency advantage over
+            # the managed clouds, not evidence of a faster query engine on
+            # its own. Flagged inline rather than buried in a caveats list,
+            # since it directly qualifies the number right next to it.
+            co_located = config.PLATFORMS[pid].deployment == "self-hosted-capped"
+            marker = " †" if co_located else ""
+            winners.append(
+                {"workload": label, "platform": _platform_name(pid) + marker, "value": f"{val:.2f} {unit}"}
+            )
         else:
             winners.append({"workload": label, "platform": "—", "value": "no data"})
 
@@ -182,17 +203,24 @@ def build_dataset_section() -> list[str]:
 
 
 def build_winner_section(winners: list[dict]) -> list[str]:
-    lines = ["## Winner by workload\n"]
-    lines.append("| Workload | Winner | Value |")
+    lines = ["## Best observed value by workload\n"]
+    lines.append("| Workload | Platform | Value |")
     lines.append("|---|---|---|")
     for w in winners:
         lines.append(f"| {w['workload']} | {w['platform']} | {w['value']} |")
     lines.append("")
     lines.append(
-        "_These are winners only for this specific dataset, query set, and resource-capped setup — "
-        'not a general claim about which database is "best." A different dataset size, query mix, or '
-        "hardware tier could change every row._\n"
+        "_These are the best numbers observed for this specific dataset, query set, and resource-capped "
+        'setup — not a general claim about which database is "best." A different dataset size, query mix, '
+        "or hardware tier could change every row._\n"
     )
+    if any("†" in w["platform"] for w in winners):
+        lines.append(
+            "_† Self-hosted comparators (Memgraph, ArangoDB) ran co-located with the benchmark client and "
+            "therefore had a real network-latency advantage that CognoDB, Aura, and FalkorDB — all reached "
+            "over the network — did not. Treat cross-deployment latency comparisons marked † as directional, "
+            "not a pure query-engine comparison._\n"
+        )
     return lines
 
 
@@ -504,6 +532,12 @@ def build_html(results: dict, winners: list[dict]) -> str:
     winner_rows = "".join(
         f"<tr><td>{w['workload']}</td><td>{w['platform']}</td><td>{w['value']}</td></tr>" for w in winners
     )
+    dagger_note = (
+        " † Self-hosted comparators ran co-located with the benchmark client and therefore had a "
+        "real network-latency advantage over the managed clouds — treat † comparisons as directional."
+        if any("†" in w["platform"] for w in winners)
+        else ""
+    )
 
     status_rows = "".join(
         f"<tr><td>{_platform_name(pid)}</td><td>{(results.get(pid) or {}).get('status', 'not run')}</td>"
@@ -575,12 +609,12 @@ def build_html(results: dict, winners: list[dict]) -> str:
 
   <div class="cards">{stat_cards}</div>
 
-  <h2>Winner by workload</h2>
+  <h2>Best observed value by workload</h2>
   <table>
-    <thead><tr><th>Workload</th><th>Winner</th><th>Value</th></tr></thead>
+    <thead><tr><th>Workload</th><th>Platform</th><th>Value</th></tr></thead>
     <tbody>{winner_rows}</tbody>
   </table>
-  <p style="color:var(--text-sec);font-size:0.85rem;">These are winners only for this specific dataset, query set, and resource-capped setup — not a general claim about which database is "best."</p>
+  <p style="color:var(--text-sec);font-size:0.85rem;">These are the best numbers observed for this specific dataset, query set, and resource-capped setup — not a general claim about which database is "best."{dagger_note}</p>
 
   <h2>Run status</h2>
   <table>
