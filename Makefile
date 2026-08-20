@@ -22,6 +22,11 @@ docker-up:
 docker-down:
 	docker compose -f docker/docker-compose.yml down
 
+# Stop AND delete stored data (volumes) — use when you want a clean re-load,
+# not for routine start/stop.
+docker-reset:
+	docker compose -f docker/docker-compose.yml down -v
+
 # PLATFORM=<id>|all  (default: all platforms with credentials in .env)
 PLATFORM ?= all
 
