@@ -1,0 +1,154 @@
+{
+  "id": "cognodb",
+  "name": "CognoDB Cloud",
+  "deployment": "managed-free-tier",
+  "driver": "bolt",
+  "query_language": "Cypher",
+  "advertised_vcpu": "0.5 (burstable)",
+  "advertised_ram": "512 MB",
+  "advertised_disk": "1 GB",
+  "region_note": "c0 free instance; benchmark client region documented in README",
+  "command": "bench",
+  "timestamp_utc": "2026-08-20T11:01:14.879517+00:00",
+  "batch_size": 500,
+  "status": "ok",
+  "error": null,
+  "load": null,
+  "read_workloads": {
+    "point_lookup": {
+      "n": 150,
+      "mean_ms": 396.515,
+      "p50_ms": 328.209,
+      "p95_ms": 926.779,
+      "p99_ms": 1343.014,
+      "min_ms": 271.751,
+      "max_ms": 1653.091
+    },
+    "indexed_lookup": {
+      "n": 150,
+      "mean_ms": 569.024,
+      "p50_ms": 400.545,
+      "p95_ms": 1182.794,
+      "p99_ms": 1491.057,
+      "min_ms": 291.588,
+      "max_ms": 2736.6
+    },
+    "traversal": {
+      "hop1": {
+        "n": 150,
+        "mean_ms": 453.343,
+        "p50_ms": 343.342,
+        "p95_ms": 992.685,
+        "p99_ms": 1374.139,
+        "min_ms": 281.806,
+        "max_ms": 3700.736
+      },
+      "hop2": {
+        "n": 150,
+        "mean_ms": 485.391,
+        "p50_ms": 333.415,
+        "p95_ms": 1259.59,
+        "p99_ms": 1671.109,
+        "min_ms": 276.626,
+        "max_ms": 1813.537
+      },
+      "hop3": {
+        "n": 150,
+        "mean_ms": 759.425,
+        "p50_ms": 393.481,
+        "p95_ms": 3199.943,
+        "p99_ms": 4569.813,
+        "min_ms": 275.5,
+        "max_ms": 7166.632
+      }
+    },
+    "aggregation": {
+      "n": 150,
+      "mean_ms": 999.696,
+      "p50_ms": 659.059,
+      "p95_ms": 2854.668,
+      "p99_ms": 3879.819,
+      "min_ms": 297.784,
+      "max_ms": 4333.797
+    }
+  },
+  "footprint": {
+    "nodes": 8769,
+    "edges": 105000,
+    "note": "Byte-level storage size is not exposed over Bolt on this platform's free tier; see the platform console/dashboard."
+  },
+  "mixed_workload_sweep": {
+    "1": {
+      "concurrency": 1,
+      "run_valid": true,
+      "workers_connected": 1,
+      "workers_failed_to_connect": 0,
+      "duration_sec": 60.144,
+      "successful_ops": 54,
+      "failed_ops": 0,
+      "error_rate": 0.0,
+      "runtime_errors": [],
+      "qps": 0.9,
+      "op_breakdown": {
+        "point_lookup": 17,
+        "hop1": 12,
+        "hop2": 15,
+        "write": 10
+      }
+    },
+    "10": {
+      "concurrency": 10,
+      "run_valid": true,
+      "workers_connected": 10,
+      "workers_failed_to_connect": 0,
+      "duration_sec": 60.444,
+      "successful_ops": 939,
+      "failed_ops": 0,
+      "error_rate": 0.0,
+      "runtime_errors": [],
+      "qps": 15.54,
+      "op_breakdown": {
+        "point_lookup": 341,
+        "hop1": 236,
+        "hop2": 166,
+        "write": 196
+      }
+    },
+    "20": {
+      "concurrency": 20,
+      "run_valid": true,
+      "workers_connected": 20,
+      "workers_failed_to_connect": 0,
+      "duration_sec": 64.172,
+      "successful_ops": 1457,
+      "failed_ops": 0,
+      "error_rate": 0.0,
+      "runtime_errors": [],
+      "qps": 22.7,
+      "op_breakdown": {
+        "point_lookup": 573,
+        "hop1": 345,
+        "hop2": 255,
+        "write": 284
+      }
+    },
+    "40": {
+      "concurrency": 40,
+      "run_valid": true,
+      "workers_connected": 40,
+      "workers_failed_to_connect": 0,
+      "duration_sec": 63.12,
+      "successful_ops": 2486,
+      "failed_ops": 0,
+      "error_rate": 0.0,
+      "runtime_errors": [],
+      "qps": 39.39,
+      "op_breakdown": {
+        "point_lookup": 989,
+        "hop1": 574,
+        "hop2": 432,
+        "write": 491
+      }
+    }
+  }
+}

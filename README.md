@@ -1,182 +1,157 @@
-# CognoDB Cloud Benchmark
+# Graph Database Cloud Benchmark
 
-A reproducible benchmark comparing [CognoDB Cloud](https://cognodb.com) against four other graph database platforms — same dataset, same logical queries, same resource envelope, same client — for [Wexa AI's take-home assignment](#).
+### CognoDB Cloud vs. Neo4j AuraDB, FalkorDB, Memgraph and ArangoDB
 
-**TL;DR:** `make setup && make dataset && make docker-up && make all && make report` loads an identical ~105k-relationship citation graph into all five platforms and produces `results/RESULTS.md` + `results/dashboard.html`. See [Results](#results) below.
+A reproducible benchmark of five graph-database platforms — [CognoDB Cloud](https://cognodb.com), Neo4j AuraDB Free, FalkorDB Cloud, self-hosted Memgraph, and self-hosted ArangoDB — using the same 105,000-relationship citation graph, equivalent logical workloads, fixed query inputs, warm-up runs, percentile latency reporting, and automated concurrency testing. Built for [Wexa AI's take-home assignment](#).
+
+The goal was not to make CognoDB — or any database — "win." The goal was to build a benchmark whose methodology and limitations are visible enough that someone else can reproduce, challenge, and extend it.
+
+> **Dataset:** SNAP cit-HepPh sample — 8,769 nodes / 105,000 relationships
+> **Measured reads:** 150 iterations after 20 dedicated warm-ups
+> **Traversals:** 1-hop / 2-hop / 3-hop
+> **Concurrency:** 1 / 10 / 20 / 40 clients
+> **Mixed workload:** 80% reads / 20% writes
+> **Outputs:** raw per-platform JSON, Markdown result tables, six charts, and an HTML dashboard
+
+**Run it yourself:** `make setup && make dataset && make docker-up && make all && make report`
+
+[Full results](#results) · [Results table](results/RESULTS.md) · [Dashboard](results/dashboard.html)
 
 ## Contents
 
+- [Key findings](#key-findings)
+- [Benchmark at a glance](#benchmark-at-a-glance)
 - [Platforms compared](#platforms-compared)
-- [Fairness & resource parity](#fairness--resource-parity)
+- [Fairness & experimental environment](#fairness--experimental-environment)
 - [Dataset](#dataset)
-- [Repo layout](#repo-layout)
-- [Setup](#setup)
-- [Running the benchmark](#running-the-benchmark)
+- [Workloads](#workloads)
 - [Methodology](#methodology)
 - [Results](#results)
 - [Analysis](#analysis)
-- [Caveats & honesty notes](#caveats--honesty-notes)
+- [Caveats & limitations](#caveats--limitations)
+- [Reproduce the benchmark](#reproduce-the-benchmark)
+- [Repository structure](#repository-structure)
+- [Extending the harness](#extending-the-harness)
+
+## Key findings
+
+- **FalkorDB** had the lowest p95 traversal latency of the three remotely-hosted managed services at every hop depth (3.6 / 5.0 / 7.8 ms for 1/2/3 hops) and the highest sustained mixed-workload throughput observed anywhere in the sweep — 2,847.7 QPS at 40 concurrent clients, with a 0% error rate at every concurrency level tested.
+- **CognoDB** was competitive on shallow reads (9.4 ms p95 point lookup, 9.9 ms p95 1-hop traversal) but developed a pronounced tail at 3 hops: 17.2 ms p50 vs. 189.6 ms p95 — more than a 10x gap between the typical and worst-case request that isn't present at 1 or 2 hops. Its mixed-workload error rate also climbed to 0.25% at 40 clients, the clearest sign of contention under load among the managed platforms.
+- **AuraDB Free** returned a nearly constant ~225–245 ms response time across point lookups, 1/2/3-hop traversals, and aggregation — queries with very different logical cost. Because this benchmark measures end-to-end client-observed latency, that flat profile points to a large fixed cost (network path, free-tier connection/gateway overhead, scheduling) rather than telling us anything about Neo4j's execution engine itself.
+- **Memgraph** and **ArangoDB** — self-hosted under the same 0.5 vCPU / 512 MB cap as CognoDB, but co-located with the benchmark client — posted the lowest raw single-query latencies and, for ArangoDB, the highest ingest throughput in the entire report. Those numbers carry a real, unequalized network advantage over the three managed services and are marked **†** throughout rather than presented as managed-cloud wins. See [Analysis](#analysis) for the full breakdown.
+
+## Benchmark at a glance
+
+| Dimension | Configuration |
+|---|---|
+| Dataset | SNAP cit-HepPh, forest-fire sampled |
+| Sample size | 8,769 nodes / 105,000 relationships |
+| Sampling | Deterministic multi-seed forest-fire (seed=42, 13 fire restarts) |
+| Read iterations | 150 measured calls per workload per platform |
+| Warm-up | 20 dedicated warm-up calls, disjoint from the measured 150 |
+| Traversals | Exactly 1 / 2 / 3 outgoing `CITES` hops |
+| Mixed workload | 80% reads (50% point lookup / 30% 1-hop / 20% 2-hop) / 20% writes |
+| Concurrency sweep | 1 / 10 / 20 / 40 concurrent clients, 60s sustained per level |
+| Ingest batch size | 500 rows/batch |
+| Read metrics | p50 / p95 / p99 / mean / min / max |
+| Throughput metrics | Successful QPS + error rate |
 
 ## Platforms compared
 
 | Platform | Why it's in the comparison |
 |---|---|
 | **CognoDB Cloud** | The assignment's target. Bolt protocol, Cypher, official `neo4j` driver. |
-| **Neo4j AuraDB Free** | The closest mainstream comparator: identical protocol and query language (Bolt/Cypher) on a different vendor's managed cloud. Isolates "different cloud infra, same engine family" from "different query language" effects. |
-| **FalkorDB Cloud (Free)** | Still Cypher (openCypher subset), but a genuinely different engine — GraphBLAS/sparse-matrix-based, RESP protocol instead of Bolt. Isolates engine architecture from query-language differences. |
-| **Memgraph** (self-hosted, capped) | A third independent Cypher engine (in-memory, C++), self-hosted and explicitly resource-capped to CognoDB's envelope rather than relying on a vendor's free-tier definition of "small." |
-| **ArangoDB** (self-hosted, capped) | The deliberate outlier: no Cypher at all — AQL, and a document/multi-model store instead of a native property graph. Tests how much of the difference is query-language/data-model overhead rather than engine performance. |
+| **Neo4j AuraDB Free** | The closest protocol/query-language comparator: both it and CognoDB expose Bolt + Cypher through the official Neo4j driver, on a different vendor's managed cloud. |
+| **FalkorDB Cloud (Free)** | Keeps a Cypher-like query model (openCypher subset) while changing the engine architecture substantially — GraphBLAS/sparse-matrix-based, RESP protocol instead of Bolt. |
+| **Memgraph** (self-hosted, capped) | A third Cypher-compatible engine (in-memory, C++), self-hosted and explicitly resource-capped to CognoDB's observed envelope rather than relying on a vendor's free-tier definition of "small." |
+| **ArangoDB** (self-hosted, capped) | The deliberate outlier: AQL, not Cypher, and a document/multi-model store instead of a native property graph — tests how much of the difference is query-language/data-model overhead rather than engine performance. |
 
-This set was chosen to separate three variables that are usually conflated in "which graph DB is fastest" benchmarks: **cloud vendor** (CognoDB vs. Aura), **engine architecture** (Bolt-trio vs. FalkorDB), and **query language / data model** (Cypher-family vs. AQL). See [Analysis](#analysis) for what the numbers actually show about each.
+Together these give the benchmark three useful comparison axes: protocol/query-language similarity (CognoDB vs. Aura), engine architecture (the Bolt/Cypher trio vs. FalkorDB), and deployment model (managed cloud vs. self-hosted, capped). Managed services bundle too many unknowns (hardware, scheduling, network path) to claim any single pair isolates *only* one variable — see [Caveats](#caveats--limitations) — but the split is still useful for reasoning about *where* differences show up. See [Analysis](#analysis) for what the numbers actually show.
 
 TigerGraph Cloud and ArangoDB Oasis were considered and dropped: TigerGraph's GSQL + schema/loading-job API was too heavy to implement correctly within the assignment's 48-hour window without cutting corners elsewhere, and ArangoDB Oasis's trial-credit model made a self-hosted, explicitly-capped ArangoDB a cleaner fairness story than a managed trial with undisclosed hardware.
 
-## Fairness & resource parity
+## Fairness & experimental environment
 
-The assignment requires *"the same (or as close as the tiers allow) vCPU, RAM and storage allocation for every platform."* Free-tier managed clouds don't expose identical hardware, so this benchmark uses two different (both legitimate, per the assignment) strategies:
+The assignment requires *"the same (or as close as the tiers allow) vCPU, RAM and storage allocation for every platform."* Free-tier managed clouds don't expose identical hardware or identical network placement, so this section documents both honestly rather than claiming parity that wasn't achieved.
+
+### Resource parity
 
 **Managed platforms (CognoDB, Aura, FalkorDB):** whatever their free tier actually provisions, documented as-observed:
 
 | Platform | vCPU | RAM | Disk |
 |---|---|---|---|
 | CognoDB Cloud (c0) | 0.5 (burstable) | **512 MB** | 1 GB |
-| Neo4j AuraDB Free | not disclosed | not disclosed (Neo4j caps by node/relationship count instead) | not disclosed |
+| Neo4j AuraDB Free | not disclosed | not disclosed (Neo4j caps by node/relationship count, not RAM) | not disclosed |
 | FalkorDB Cloud (Free) | shared | 100 MB | shared (RAM-backed) |
 
 > **Discrepancy note:** the assignment PDF describes CognoDB's free tier as *"burstable 0.5 vCPU, 256 MB RAM, 1 GB disk."* The actual provisioned `c0` instance's console showed **512 MB RAM** at benchmark time. The observed console specification is what's used throughout this README and the harness — the product evidently changed since the assignment was written, and reporting what we actually measured is more honest than reporting the PDF's stale number.
 
-**Self-hosted platforms (Memgraph, ArangoDB):** explicitly capped via Docker (`docker/docker-compose.yml`) to **0.5 vCPU / 512 MB RAM**, matching CognoDB's observed envelope, rather than left unconstrained. `mem_limit`/`cpus` (not `deploy.resources.limits`, which requires swarm mode) are applied directly by a plain `docker compose up`. Disk is host-backed and not quota-limited by Docker itself — the dataset is small enough (see below) that this doesn't matter in practice, and actual stored size is reported in the footprint table rather than an unenforced claim of a cap.
+**Self-hosted platforms (Memgraph, ArangoDB):** explicitly capped via Docker (`docker/docker-compose.yml`) to **0.5 vCPU / 512 MB RAM**, matching CognoDB's observed envelope, rather than left unconstrained. `mem_limit`/`cpus` (not `deploy.resources.limits`, which requires swarm mode) are applied directly by a plain `docker compose up`. Disk is host-backed and not quota-limited by Docker itself — the dataset is small enough (see [Dataset](#dataset)) that this doesn't matter in practice, and actual stored counts are reported in the footprint table rather than an unenforced claim of a cap.
 
-**Same client, same region:** Docker resource limits control *how much* compute self-hosted comparators get, not *where* anything runs — that's a deployment decision, not a config file. CognoDB was provisioned in **us-east4** (GCP, Virginia). For a fair comparison the benchmark client and the self-hosted containers should run on a small VM in that same region, hitting CognoDB/Aura/FalkorDB over a real network hop exactly like it hits Memgraph/ArangoDB — not on a developer laptop, which would give self-hosted comparators an unfair zero-network-hop advantage. See [Setup](#setup) for the exact runbook. **The results in this README were captured from `<fill in: your VM region/specs once you run the real benchmark>`** — see [Caveats](#caveats--honesty-notes) for what was measured from a non-representative location during development.
+### Deployment & network placement
+
+Compute caps are only half of "fair." *Where* each platform runs relative to the benchmark client matters just as much, and this run does **not** have equal network placement across all five platforms:
+
+| Platform | Deployment location | Client path |
+|---|---|---|
+| CognoDB Cloud | GCP `us-east4` (Northern Virginia) | Remote managed endpoint |
+| FalkorDB Cloud (Free) | AWS `us-east-1` (Northern Virginia) | Remote managed endpoint |
+| Neo4j AuraDB Free | Region not exposed/recorded during this run | Remote managed endpoint |
+| Memgraph (self-hosted, capped) | GitHub Codespaces host | Co-located with the benchmark client |
+| ArangoDB (self-hosted, capped) | GitHub Codespaces host | Co-located with the benchmark client |
+
+The benchmark client itself ran inside a GitHub Codespaces environment. CognoDB and FalkorDB were both provisioned in Northern-Virginia-area US-East regions, but on different cloud providers and physically distinct regions (`us-east4` on GCP vs. `us-east-1` on AWS) — geographically close, not identical, so this README calls them "geographically close US-East regions" rather than "the same region." AuraDB's region wasn't exposed in the console during this run and is reported as unknown rather than guessed.
+
+Memgraph and ArangoDB, by contrast, ran as Docker containers inside the same Codespace as the client — a real network hop away from *nothing*. Their absolute latency numbers therefore have an unequalized advantage over all three managed services and are marked **†** everywhere they appear in [Results](#results) and [Analysis](#analysis). The managed-cloud-to-managed-cloud comparison (CognoDB vs. Aura vs. FalkorDB) is the cleaner cross-service latency comparison in this report; self-hosted numbers are reference points for "what does this engine do under an equivalent CPU/RAM cap with no network cost," not a claim that Memgraph or ArangoDB would beat the managed services if deployed remotely.
 
 ## Dataset
 
 **Source:** [SNAP cit-HepPh](https://snap.stanford.edu/data/cit-HepPh.html) — a directed citation network of Arxiv High-Energy Physics papers. Full graph: 34,546 nodes, 421,578 edges (including 44 self-citations and one 11-prefixed cross-listing ID convention, both handled explicitly — see `data/prepare_dataset.py`).
 
-**Sampling — forest-fire, not plain BFS/snowball or uniform-random:** the assignment asks for 100k–500k relationships, small enough to fit FalkorDB's 100 MB free tier. Plain BFS/snowball sampling is documented in the literature (Leskovec & Faloutsos, *"Sampling from Large Graphs,"* KDD 2006) to over-represent dense hub neighborhoods — which would directly bias the 1/2/3-hop traversal benchmark toward artificially well-connected start nodes. Forest-fire sampling avoids this by "burning" outward from several random seeds with a bounded per-seed budget, so the sample isn't dominated by one well-connected corner of the graph. Full method, parameters, and the resulting graph's actual statistics are in `data/processed/manifest.json` (regenerated by `make dataset`) and summarized in [Results](#results).
+**Why sample, and why not uniformly-at-random?** The assignment asks for 100k–500k relationships, small enough to also fit FalkorDB's 100 MB free tier. Sampling individual edges uniformly at random tends to break the local connectivity a 1–3 hop traversal benchmark is meant to measure, and a single unrestricted breadth-first walk can instead over-represent one especially dense neighborhood (Leskovec & Faloutsos, *"Sampling from Large Graphs,"* KDD 2006). This benchmark instead uses **forest-fire sampling**: conceptually a controlled breadth-first walk that "burns" outward from a seed node, following only a random subset of each node's edges, and periodically restarts from a fresh seed elsewhere in the graph once a burn dies out. That keeps the sample from being dominated by either extreme.
 
-Both the raw dataset and the processed sample are gitignored (large, and exactly reproducible from source) — `make dataset` fetches and regenerates them deterministically (fixed random seed). The processed `nodes.csv`/`edges.csv` SHA-256 fingerprints are recorded in every generated results report so you can confirm you're reproducing the exact same graph.
+Final sample used for every platform in this report:
+
+- 8,769 nodes / 105,000 relationships
+- average degree: 23.948 (source graph average degree is ~24.4, so overall connectivity is comparable)
+- 1 connected component
+- 13 fire restarts, random seed 42
+
+Full method, parameters, and the resulting graph's actual statistics are in `data/processed/manifest.json` (regenerated by `make dataset`).
+
+Both the raw dataset and the processed sample are gitignored (large, and exactly reproducible from source) — `make dataset` fetches and regenerates them deterministically. The processed `nodes.csv`/`edges.csv` SHA-256 fingerprints are recorded in every generated results report (see [Results](#results)) so you can confirm you're reproducing the exact same graph.
 
 No synthetic data: the `year` node property is populated only where the source `cit-HepPh-dates.txt` has a real recorded date for that paper (722 of 8,769 papers have none, and are simply loaded with no `year` property — never backfilled with a made-up value).
 
-## Repo layout
+## Workloads
 
-```
-data/                   dataset download + forest-fire sampling
-  download.py
-  prepare_dataset.py
-  processed/             nodes.csv, edges.csv, manifest.json, query_start_nodes.json (generated)
-benchmark/
-  config.py              platform specs, dataset/workload parameters — single source of truth
-  adapters/              one adapter per wire protocol: bolt (CognoDB/Aura/Memgraph), falkordb, arangodb
-  loader.py               batched loading + ingest throughput
-  workloads.py            read workloads + concurrent mixed read/write workload
-  stats.py                 warm-up handling + p50/p95/p99 percentiles
-  runner.py                 CLI: load / bench / all, per platform or --platform all
-docker/
-  docker-compose.yml     resource-capped Memgraph + ArangoDB
-scripts/
-  generate_report.py     results/raw/*.json -> RESULTS.md + dashboard.html + charts
-results/
-  raw/                   one JSON per platform per run (gitignored by default)
-  charts/                 generated PNGs
-  RESULTS.md, dashboard.html
-```
+| Workload | Logical question |
+|---|---|
+| Point lookup | Find one `Paper` by its unique `paperId` |
+| Indexed/filtered lookup | Find all papers where `year = Y` |
+| 1-hop traversal | Papers reachable via exactly one outgoing `CITES` edge from X |
+| 2-hop traversal | Papers reachable via exactly two outgoing `CITES` edges from X |
+| 3-hop traversal | Papers reachable via exactly three outgoing `CITES` edges from X |
+| Aggregation | Count of `Paper`, grouped by `year` |
+| Mixed workload | Concurrent 80% reads / 20% writes, swept across 1/10/20/40 clients |
 
-## Setup
+### Timing discipline
 
-### 0. Recommended: a region-matched VM, not your laptop
+Every read workload uses the identical sequence of 150 measured start nodes/filter values (persisted once in `data/processed/query_start_nodes.json`, not re-randomized per run) plus 20 dedicated warm-up calls that are disjoint from those 150 — never "the first 20 of the 150," which would silently shrink the measured sample. Every adapter method fully materializes its result before the timer stops (no lazy cursors), so latency reflects real client-observed time rather than "time to start receiving a response." Percentiles (p50/p95/p99 + mean/min/max) are computed over the 150 measured calls per workload per platform, on a high-resolution monotonic timer.
 
-To satisfy "same client machine and region for every platform" (see [Fairness](#fairness--resource-parity)):
+### Mixed workload
 
-```bash
-# Example: GCP e2-small in us-east4, matching CognoDB's region
-gcloud compute instances create cognodb-benchmark \
-  --zone=us-east4-c --machine-type=e2-small \
-  --image-family=ubuntu-2404-lts-amd64 --image-project=ubuntu-os-cloud
-
-gcloud compute ssh cognodb-benchmark --zone=us-east4-c
-```
-
-On the VM: install Docker, Python 3.11+, and git, then clone this repo. (Ubuntu/Linux is the documented reproducible environment for this benchmark — the Makefile's `.venv/bin` paths assume a POSIX shell; Windows users should run it inside WSL.)
-
-### 1. Python environment
-
-```bash
-git clone <this-repo-url> && cd DBBenchmarking
-make setup            # creates .venv, installs pinned requirements.txt
-```
-
-### 2. Platform accounts — read the password/URI shown-once warnings before starting
-
-**CognoDB Cloud** (required target):
-1. [console.cognodb.com/signup](https://console.cognodb.com/signup) — free, no credit card.
-2. Create a free `c0` instance, region **us-east4** (or match wherever your benchmark VM lives).
-3. Copy the `bolt+s://...` URI and the generated password **immediately** — the password is shown once.
-
-**Neo4j AuraDB Free:**
-1. [console.neo4j.io](https://console.neo4j.io) — create a Free instance, same region if offered.
-2. Download the generated credentials file when prompted (also shown once).
-
-**FalkorDB Cloud (Free):**
-1. [app.falkordb.cloud](https://app.falkordb.cloud) — create a free instance.
-2. Note host/port/password from the dashboard.
-
-**Memgraph + ArangoDB** (self-hosted, capped — no account needed):
-```bash
-make docker-up     # starts both, resource-capped per docker/docker-compose.yml
-```
-
-### 3. Configure secrets
-
-```bash
-cp .env.example .env
-# fill in COGNODB_*, AURA_*, FALKORDB_* from the consoles above.
-# MEMGRAPH_URI / ARANGO_* already point at the docker-compose defaults.
-```
-
-`.env` is gitignored — nothing here is ever committed. `benchmark/config.py` skips any platform whose required env vars aren't set, so you can develop against a subset of accounts.
-
-## Running the benchmark
-
-```bash
-make dataset                    # fetch SNAP data, build the forest-fire sample (deterministic, ~seconds)
-make all PLATFORM=cognodb       # load + benchmark one platform
-make all                        # load + benchmark every platform with credentials in .env
-make report                     # regenerate RESULTS.md, dashboard.html, charts from results/raw/*.json
-```
-
-`make all` (and the underlying `python -m benchmark.runner all --platform all`) is the single command a reviewer needs — it loads the identical dataset into every configured platform, runs every required workload, and writes one timestamped JSON per platform to `results/raw/`. Nothing here needs code changes to add a run: re-running `make all` after fixing an account or restarting Docker just adds a newer result, and `generate_report.py` always uses the latest `status="ok"` run per platform.
-
-Individual pieces, for development/debugging:
-```bash
-make load PLATFORM=falkordb                                    # just load
-make bench PLATFORM=falkordb                                    # verify data present, then benchmark
-.venv/bin/python -m benchmark.runner bench --platform cognodb --skip-mixed   # skip the concurrency sweep (faster iteration)
-```
+Concurrency is swept across 1 → 10 → 20 → 40 clients, each with its own database connection (not a shared adapter across threads). The operation mix is fixed and identical across platforms — 80% reads (50% point lookup / 30% 1-hop / 20% 2-hop) and 20% writes (an `UPDATE` of an existing node's `benchmark_counter`, never create/delete, so node/edge counts and graph structure never drift during a run). All workers synchronize on a barrier before the clock starts; if the requested concurrency can't be established within 60s, the whole level is marked `run_valid: false` rather than silently reporting a "40-client" result generated by 35 connected workers. Both successful QPS and error rate are reported per level.
 
 ## Methodology
 
-**Dataset:** identical `nodes.csv`/`edges.csv` loaded into every platform via each platform's official/idiomatic driver (see `benchmark/adapters/`), batched at a uniform 500 rows/batch (`LOAD_BATCH_SIZE`, overridable via env var, and any override is recorded in the result JSON — never silently applied differently per platform).
-
-**Read workloads** — every platform is queried against the *identical* sequence of start nodes/filter values, persisted once in `data/processed/query_start_nodes.json` rather than re-randomized per run:
-- **Point lookup:** fetch one `Paper` by its unique `paperId`.
-- **Indexed/filtered lookup:** fetch all papers with a given `year` (index: `paperId` unique constraint + index, and a secondary index on `year`, created identically on every platform in `reset_schema()`).
-- **1/2/3-hop traversal:** distinct nodes reachable via *exactly* N outgoing `CITES` edges. Start nodes are restricted to those with at least one outgoing edge (`QUERY_MIN_OUT_DEGREE`) — a zero-out-degree start node makes every hop depth trivially instant, which would measure nothing.
-- **Aggregation:** count of `Paper` grouped by `year`.
-- **Warm-up:** 20 dedicated warm-up items, disjoint from the 150 measured items — not "the first 20 of the 150," which would silently shrink the measured sample. Every adapter method fully materializes its result before the timer stops (no lazy cursors), so latency reflects real client-observed time, not "time to start receiving a response."
-- Percentiles (p50/p95/p99 + mean/min/max) computed over the 150 measured calls per workload per platform.
-
-**Mixed read/write workload** — sustained throughput under concurrency, not just single-client latency:
-- Fixed 80% read / 20% write composition, identical across platforms: reads are 50% point lookup / 30% 1-hop / 20% 2-hop; writes are a property `UPDATE` on an existing node (**never** create/delete), so node/edge counts and graph structure never drift across a run.
-- Concurrency sweep: **1, 10, 20, 40** concurrent clients, each with its own connection (not a shared adapter across threads — sidesteps driver thread-safety questions and matches how real concurrent clients behave), 60 seconds sustained per level.
-- **All-or-nothing connect:** every worker synchronizes on a barrier before the clock starts, so connection-setup time never eats into the measured window. If any worker fails to connect within 60s, the whole concurrency-level run is aborted and reported `run_valid: false` — a "40-client" result where only 35 actually connected is not the same experiment as a real 40-client run, and is never silently reported as one.
-- Reports **successful QPS**, **error rate** (`failed_ops / attempted_ops`), and up to 5 sample runtime error messages — a database returning more QPS by silently failing 15% of requests is not "faster."
-- `benchmark_counter` (the write target) is reset to absent on every node before each concurrency level, so repeated levels within a sweep all start from identical state.
+**Dataset loading:** identical `nodes.csv`/`edges.csv` loaded into every platform via each platform's official/idiomatic driver (see `benchmark/adapters/`), batched at a uniform 500 rows/batch (`LOAD_BATCH_SIZE`, overridable via env var, and any override is recorded in the result JSON — never silently applied differently per platform).
 
 **Ingest throughput:** nodes/sec and rels/sec timed separately (edge-loading requires nodes to already exist via `MATCH`, so the two phases are never concurrent), plus total wall-clock load time and a post-load count verification. **A platform is never benchmarked on an incomplete load** — `runner.py` aborts with an explicit error if verified node/edge counts don't match the expected dataset, rather than silently benchmarking whatever fraction actually loaded.
 
-**Footprint:** node/edge counts (always available) plus whatever else the platform's driver exposes (Memgraph's `SHOW STORAGE INFO`, ArangoDB's collection statistics); reported as "not observable" where a platform's free tier doesn't expose it over the client API rather than omitted silently.
+**Indexes:** a `paperId` unique constraint plus a secondary index on `year`, created identically on every platform in `reset_schema()` before loading.
+
+**Footprint:** node/edge counts (always available) plus whatever else the platform's driver exposes (Memgraph's `SHOW STORAGE INFO`, ArangoDB's collection statistics); reported as "not observable" where a platform's free tier doesn't expose it over the client API, rather than omitted silently.
 
 ## Results
 
@@ -199,7 +174,7 @@ Generated by `python -m scripts.generate_report`. Do not hand-edit — edit the 
 
 - Source: SNAP cit-HepPh (https://snap.stanford.edu/data/cit-HepPh.html)
 - Sampling method: forest-fire (Leskovec & Faloutsos 2006) (seed=42, 13 fire restarts)
-- Sample graph: **8,769 nodes / 105,000 relationships**, avg degree 23.948, 1 connected component(s)
+- Sample graph: **8,769 nodes / 105,000 relationships**, avg degree 23.948, 1 connected component
 - Year property: 8,047 papers with a real recorded year, 722 without (no synthetic years — see caveats)
 - `nodes.csv` sha256: `4cfc8db8f1e196099a74ed80347e1bf9170b4619d66d714200044ec930747dbe`
 - `edges.csv` sha256: `17de749956ab6dc7969b145b6921926dcc7301ed2977c36a369ea50a2d5b7dc7`
@@ -209,11 +184,11 @@ Generated by `python -m scripts.generate_report`. Do not hand-edit — edit the 
 
 | Platform | Status | Client env | Timestamp (UTC) | Error |
 |---|---|---|---|---|
-| CognoDB Cloud | ok | unspecified | 2026-08-20T18:06:38.278072+00:00 |  |
-| Neo4j AuraDB Free | ok | unspecified | 2026-08-20T18:11:22.766372+00:00 |  |
-| FalkorDB Cloud (Free) | ok | unspecified | 2026-08-20T14:03:34.295831+00:00 |  |
-| Memgraph (self-hosted, capped) | ok | unspecified | 2026-08-20T18:01:37.354189+00:00 |  |
-| ArangoDB (self-hosted, capped) | ok | unspecified | 2026-08-20T17:54:59.233553+00:00 |  |
+| CognoDB Cloud | ok | github-codespaces | 2026-08-20T18:06:38.278072+00:00 |  |
+| Neo4j AuraDB Free | ok | github-codespaces | 2026-08-20T18:11:22.766372+00:00 |  |
+| FalkorDB Cloud (Free) | ok | github-codespaces | 2026-08-20T14:03:34.295831+00:00 |  |
+| Memgraph (self-hosted, capped) | ok | github-codespaces | 2026-08-20T18:01:37.354189+00:00 |  |
+| ArangoDB (self-hosted, capped) | ok | github-codespaces | 2026-08-20T17:54:59.233553+00:00 |  |
 
 ## Data loading
 
@@ -319,8 +294,8 @@ Generated by `python -m scripts.generate_report`. Do not hand-edit — edit the 
 | CognoDB Cloud | 8769 | 105000 | Byte-level storage size is not exposed over Bolt on this platform's free tier; see the platform console/dashboard. |
 | Neo4j AuraDB Free | 8769 | 105000 | Byte-level storage size is not exposed over Bolt on this platform's free tier; see the platform console/dashboard. |
 | FalkorDB Cloud (Free) | 8769 | 105000 | FalkorDB Cloud free tier does not expose per-graph memory usage over the client API. |
-| Memgraph (self-hosted, capped) | 8769 | 105000 |  |
-| ArangoDB (self-hosted, capped) | 8769 | 105000 |  |
+| Memgraph (self-hosted, capped) | 8769 | 105000 | Container capped at 0.5 CPU / 512 MB (see Platform specs); byte-level graph storage not separately reported in this run. |
+| ArangoDB (self-hosted, capped) | 8769 | 105000 | Container capped at 0.5 CPU / 512 MB (see Platform specs); byte-level graph storage not separately reported in this run. |
 
 ## Best observed value by workload
 
@@ -366,21 +341,137 @@ Full per-workload tables (all metrics from the assignment's §5.2 for every plat
 
 ## Analysis
 
-*(To be filled in once all five platforms have real results — see [Caveats](#caveats--honesty-notes) for current status. Framework below.)*
+### FalkorDB — strongest managed-cloud traversal and concurrency profile
 
-The three-way split in [platform selection](#platforms-compared) is designed to answer three separate questions, not just "which DB is fastest":
+Among the three remotely-hosted managed services, FalkorDB produced the lowest p95 traversal latency at every hop depth (3.6 / 5.0 / 7.8 ms for 1/2/3 hops) and the highest sustained mixed-workload throughput observed in the entire report: 314.9 QPS at 1 client, rising to 2,785.7 QPS at 10, and holding at 2,603.5–2,847.7 QPS through 20 and 40 clients — with zero recorded errors at any concurrency level. The roughly 9x jump between 1 and 10 clients, followed by a plateau, suggests most of the available parallelism headroom on this free tier is captured by around 10 concurrent clients.
 
-1. **CognoDB vs. Aura** (same protocol, same query language, different vendor cloud): differences here are attributable to the underlying infrastructure/engine tuning, not the driver or query language — the cleanest apples-to-apples comparison in the set.
-2. **Bolt trio (CognoDB/Aura/Memgraph) vs. FalkorDB** (same query language, different engine architecture): FalkorDB's GraphBLAS/sparse-matrix execution model is architecturally different from the property-graph traversal engines in the other three. Where FalkorDB pulls ahead or falls behind on traversal-heavy workloads specifically (vs. lookup/aggregation) is evidence about that architectural difference, not just raw speed.
-3. **Cypher family vs. ArangoDB/AQL** (different query language and data model entirely): ArangoDB's document model with `_from`/`_to` edge references vs. native property-graph storage is the largest structural difference in the set. Gaps here are as much about data-model/query-planner overhead as raw engine throughput.
+### CognoDB — fast on shallow reads, a real tail at 3 hops
 
-Once populated, this section will call out: which platform(s) show the flattest latency curve across 1/2/3-hop traversal (evidence of genuine graph-native traversal vs. join-based emulation), whether mixed-workload QPS scales roughly linearly through the concurrency sweep or plateaus/degrades (contention, connection limits, or free-tier throttling), and whether ingest throughput correlates with read latency (a platform optimized for write-heavy ingestion isn't necessarily the one with the best read tail latency).
+CognoDB's point lookup (9.4 ms p95) and 1-hop traversal (9.9 ms p95) were competitive with the self-hosted comparators despite the network hop. The 3-hop workload tells a different story: 17.2 ms p50 vs. 189.6 ms p95 — more than a 10x gap between typical and tail latency that isn't present at 1 or 2 hops. Mixed-workload throughput scaled from 102.1 QPS at 1 client to 407.9 QPS at 10, but only marginally beyond that (423.0 QPS @ 20, 436.6 @ 40), while the error rate climbed to 0.25% at 40 clients — the clearest sign of contention under load anywhere in this dataset.
 
-## Caveats & honesty notes
+### AuraDB Free — a large, nearly-constant latency floor
 
-- **Development-time numbers are not the published benchmark.** The harness has been validated end-to-end against a real, live CognoDB free instance (full 8,769-node/105,000-edge load, all read workloads, and the mixed-workload concurrency sweep) from this project's development sandbox — which is **not** in `us-east4` and not representative of the client-machine/region parity described above. Those numbers confirm the code is correct; they are not included as the reported benchmark results. The real results in this README come from a run against the region-matched VM described in [Setup](#setup).
-- **CognoDB's RAM spec changed since the assignment was written** (256 MB per the PDF vs. 512 MB observed on the actual provisioned console) — see [Fairness](#fairness--resource-parity). The harness uses the observed value.
+Every AuraDB workload landed in a narrow ~225–245 ms band regardless of query complexity: point lookup p95 226.5 ms, 1-hop 226.3 ms, 2-hop 231.9 ms, 3-hop 244.6 ms, aggregation 229.8 ms. Point lookups and 3-hop traversals are not equally expensive queries, so returning nearly the same latency for both suggests a large fixed cost — network path, free-tier connection/gateway overhead, or scheduling — dominates end-to-end latency here rather than query execution time. Because this benchmark measures client-observed latency rather than server-side execution time, it can't separate that fixed cost from engine performance, so this result is reported as an environment/service-tier observation, not evidence about the Neo4j execution engine itself.
+
+### Memgraph and ArangoDB — capped-hardware reference points, not managed-cloud winners
+
+Running with no remote network hop, both self-hosted platforms posted the lowest raw single-query numbers in the report (e.g. ArangoDB point lookup p95 1.2 ms, 1-hop p95 2.9 ms) and ArangoDB the highest ingest throughput observed (58,867.6 nodes/sec, 32,761.1 rels/sec) — despite running under the same 0.5 vCPU / 512 MB cap as CognoDB. These are marked **†** in the Best Observed Value table precisely because they inherit the network advantage described in [Fairness & experimental environment](#fairness--experimental-environment): they measure "what this engine does under a matched CPU/RAM cap with zero network cost," not "how this engine would perform deployed remotely like the other three."
+
+Memgraph's mixed-workload throughput is worth flagging on its own: 244.1 QPS at 1 client fell to roughly 165–166 QPS from 10 through 40 clients. Unlike every other platform in the sweep, added concurrency did not increase Memgraph's sustained throughput under this resource cap.
+
+### Tail latency changes the story that medians tell
+
+Looking only at p50, CognoDB's and ArangoDB's 3-hop traversals would both read as fast (17.2 ms and 7.8 ms respectively). It's only the p95 (189.6 ms and 140.2 ms) that reveals a heavy tail specific to the deepest traversal on those two platforms, absent at 1 and 2 hops. Reporting both bounds — not just an average — is what surfaces this, and it's the main reason this benchmark reports p50/p95 for every workload rather than a single latency number per platform.
+
+## Caveats & limitations
+
+- **Network placement is not equal across platforms.** Memgraph and ArangoDB ran as Docker containers inside the same GitHub Codespaces environment as the benchmark client; CognoDB, AuraDB, and FalkorDB were all reached over the network to their managed endpoints. Self-hosted latency numbers therefore have a real, unequalized advantage and are marked † throughout — see [Deployment & network placement](#deployment--network-placement).
+- **Managed-cloud regions are close, not identical.** CognoDB (GCP `us-east4`) and FalkorDB (AWS `us-east-1`) are both Northern-Virginia-area regions but different providers and physically distinct data centers — reported as "geographically close," not "the same region." AuraDB's region wasn't exposed during this run and is reported as unknown rather than guessed.
+- **CognoDB's RAM spec changed since the assignment was written** (256 MB per the PDF vs. 512 MB observed on the actual provisioned console) — see [Resource parity](#resource-parity). The harness uses the observed value.
 - **Docker resource caps are CPU/RAM only, not disk.** `mem_limit`/`cpus` are real, enforced constraints; disk is host-backed with no quota. The dataset (~105k relationships) is small enough this shouldn't matter, but it's not an enforced parity claim.
 - **Query-language differences are real and not papered over.** ArangoDB (AQL) and FalkorDB (openCypher subset) are not drop-in Cypher; see `benchmark/adapters/` for the specific dialect differences (e.g. FalkorDB has no `FOREACH`, so conditional property-setting during load is split into two passes instead of one).
-- **Free-tier throttling, timeouts, and partial connection failures are reported, not hidden** — see the mixed-workload `run_valid`/`error_rate`/`connect_errors` fields in every result JSON, and the "Run status" table in the generated results, which shows `status: failed` with the real exception message for any platform that didn't complete successfully.
+- **Free-tier throttling, timeouts, and partial connection failures are reported, not hidden** — see the mixed-workload `run_valid`/`error_rate`/`connect_errors` fields in every result JSON, and the "Run status" table above, which would show `status: failed` with the real exception message for any platform that didn't complete successfully.
 - **AuraDB free-tier limits are inconsistently documented by Neo4j itself** (one page states 50k nodes/175k relationships, another 200k/400k) — the ~8,769-node/105,000-relationship sample here fits comfortably under either stated limit.
+- **One dataset, one workload mix.** These results characterize this citation graph, this sampling method, and this specific read/write mix — not every possible graph topology or access pattern. Only warmed-cache latency is reported as the headline metric; cold-start behavior wasn't measured separately.
+
+## Reproduce the benchmark
+
+### Requirements
+
+- Linux, GitHub Codespaces, or WSL (the Makefile's `.venv/bin` paths assume a POSIX shell)
+- Python 3.11+
+- Docker + Docker Compose
+- Free accounts for CognoDB, AuraDB, and FalkorDB
+
+### 1. Python environment
+
+```bash
+git clone <this-repo-url> && cd DBBenchmarking
+make setup            # creates .venv, installs pinned requirements.txt
+```
+
+### 2. Platform accounts — read the password/URI shown-once warnings before starting
+
+**CognoDB Cloud** (required target):
+1. [console.cognodb.com/signup](https://console.cognodb.com/signup) — free, no credit card.
+2. Create a free `c0` instance (this report used `us-east4`; any region works for reproduction).
+3. Copy the `bolt+s://...` URI and the generated password **immediately** — the password is shown once.
+
+**Neo4j AuraDB Free:**
+1. [console.neo4j.io](https://console.neo4j.io) — create a Free instance.
+2. Download the generated credentials file when prompted (also shown once).
+
+**FalkorDB Cloud (Free):**
+1. [app.falkordb.cloud](https://app.falkordb.cloud) — create a free instance.
+2. Note host/port/password from the dashboard.
+
+**Memgraph + ArangoDB** (self-hosted, capped — no account needed):
+```bash
+make docker-up     # starts both, resource-capped per docker/docker-compose.yml
+```
+
+### 3. Configure secrets
+
+```bash
+cp .env.example .env
+# fill in COGNODB_*, AURA_*, FALKORDB_* from the consoles above.
+# MEMGRAPH_URI / ARANGO_* already point at the docker-compose defaults.
+```
+
+`.env` is gitignored — nothing here is ever committed. `benchmark/config.py` skips any platform whose required env vars aren't set, so you can develop against a subset of accounts.
+
+### 4. Run
+
+```bash
+make dataset                    # fetch SNAP data, build the forest-fire sample (deterministic, ~seconds)
+make all PLATFORM=cognodb       # load + benchmark one platform
+make all                        # load + benchmark every platform with credentials in .env
+make report                     # regenerate RESULTS.md, dashboard.html, charts from results/raw/*.json
+```
+
+`make all` (and the underlying `python -m benchmark.runner all --platform all`) is the single command a reviewer needs — it loads the identical dataset into every configured platform, runs every required workload, and writes one timestamped JSON per platform to `results/raw/`. Re-running `make all` after fixing an account or restarting Docker just adds a newer result; `generate_report.py` always uses the latest `status="ok"` run per platform, so `make report` regenerates every table and chart from those files with no hand-copied numbers.
+
+Individual pieces, for development/debugging:
+```bash
+make load PLATFORM=falkordb                                    # just load
+make bench PLATFORM=falkordb                                    # verify data present, then benchmark
+.venv/bin/python -m benchmark.runner bench --platform cognodb --skip-mixed   # skip the concurrency sweep (faster iteration)
+```
+
+## Repository structure
+
+```
+data/                   dataset download + forest-fire sampling
+  download.py
+  prepare_dataset.py
+  processed/             nodes.csv, edges.csv, manifest.json, query_start_nodes.json (generated)
+benchmark/
+  config.py              platform specs, dataset/workload parameters — single source of truth
+  adapters/              one adapter per wire protocol: bolt (CognoDB/Aura/Memgraph), falkordb, arangodb
+  loader.py               batched loading + ingest throughput
+  workloads.py            read workloads + concurrent mixed read/write workload
+  stats.py                 warm-up handling + p50/p95/p99 percentiles
+  runner.py                 CLI: load / bench / all, per platform or --platform all
+docker/
+  docker-compose.yml     resource-capped Memgraph + ArangoDB
+scripts/
+  generate_report.py     results/raw/*.json -> RESULTS.md + dashboard.html + charts
+results/
+  raw/                   one JSON per platform per run (gitignored by default)
+  charts/                 generated PNGs
+  RESULTS.md, dashboard.html
+```
+
+## Extending the harness
+
+A new database only needs to implement the `GraphAdapter` interface (`benchmark/adapters/base.py`):
+
+- `connect` / `close`
+- `reset_schema`
+- `load_nodes` / `load_edges`
+- `count_nodes` / `count_edges`
+- `point_lookup` / `indexed_lookup` / `traversal` / `aggregation`
+- `write_touch` / `reset_benchmark_counter`
+- `footprint`
+
+The workload runner, percentile logic, concurrency harness, result JSON schema, and report generator (`scripts/generate_report.py`) are all database-agnostic — they only ever call through this interface. Adding another graph database means writing one adapter and registering it in `benchmark/adapters/__init__.py` / `benchmark/config.py`, without touching the experimental methodology itself.
