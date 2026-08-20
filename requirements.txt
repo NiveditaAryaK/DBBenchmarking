@@ -1,0 +1,7 @@
+# Pinned to the versions verified against this harness (see README "Environment").
+neo4j==6.2.0             # official Bolt driver — used for CognoDB, Neo4j AuraDB, Memgraph
+FalkorDB==1.7.1           # official FalkorDB client (RESP protocol + Cypher)
+python-arango==8.3.3      # ArangoDB client (AQL)
+python-dotenv==1.2.3      # loads secrets from .env, never from source
+matplotlib==3.11.1        # charts for the README
+numpy==2.5.2              # percentile math
