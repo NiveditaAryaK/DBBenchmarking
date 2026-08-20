@@ -14,6 +14,9 @@ The goal was not to make CognoDB — or any database — "win." The goal was to 
 > **Outputs:** raw per-platform JSON, Markdown result tables, six charts, and an HTML dashboard
 
 **Run it yourself:** `make setup && make dataset && make docker-up && make all && make report`
+`make all` produces timestamped machine-readable results for every configured
+platform; `make report` regenerates the result tables, charts, and dashboard
+from those files, so benchmark numbers are never hand-copied into the report.
 
 [Full results](#results) · [Results table](results/RESULTS.md) · [Dashboard](results/dashboard.html)
 
@@ -357,7 +360,7 @@ Every AuraDB workload landed in a narrow ~225–245 ms band regardless of query 
 
 Running with no remote network hop, both self-hosted platforms posted the lowest raw single-query numbers in the report (e.g. ArangoDB point lookup p95 1.2 ms, 1-hop p95 2.9 ms) and ArangoDB the highest ingest throughput observed (58,867.6 nodes/sec, 32,761.1 rels/sec) — despite running under the same 0.5 vCPU / 512 MB cap as CognoDB. These are marked **†** in the Best Observed Value table precisely because they inherit the network advantage described in [Fairness & experimental environment](#fairness--experimental-environment): they measure "what this engine does under a matched CPU/RAM cap with zero network cost," not "how this engine would perform deployed remotely like the other three."
 
-Memgraph's mixed-workload throughput is worth flagging on its own: 244.1 QPS at 1 client fell to roughly 165–166 QPS from 10 through 40 clients. Unlike every other platform in the sweep, added concurrency did not increase Memgraph's sustained throughput under this resource cap.
+Memgraph's mixed-workload error rate rose to 0.25% at 40 clients, indicating some degradation at the highest tested concurrency. Because the benchmark measures end-to-end behavior, the run alone cannot distinguish database contention from free-tier throttling, network effects, or other managed-service overhead.
 
 ### Tail latency changes the story that medians tell
 
@@ -475,3 +478,24 @@ A new database only needs to implement the `GraphAdapter` interface (`benchmark/
 - `footprint`
 
 The workload runner, percentile logic, concurrency harness, result JSON schema, and report generator (`scripts/generate_report.py`) are all database-agnostic — they only ever call through this interface. Adding another graph database means writing one adapter and registering it in `benchmark/adapters/__init__.py` / `benchmark/config.py`, without touching the experimental methodology itself.
+
+## What I would improve with more time
+
+The largest remaining limitation is network placement. Memgraph and ArangoDB
+were co-located with the benchmark client, while the managed platforms were
+accessed remotely. A stronger follow-up experiment would place the self-hosted
+databases on a separate US-East VM so every platform incurs a real network hop.
+
+I would also:
+
+- repeat the complete benchmark across multiple independent runs and report
+  run-to-run variance or confidence intervals;
+- capture server-side query execution time where platforms expose it, allowing
+  network and service overhead to be separated from query execution;
+- repeat the experiment on a second graph with a different topology and degree
+  distribution;
+- test larger datasets and matched paid instances where hardware specifications
+  can be controlled more closely.
+
+These extensions would make it easier to distinguish engine behavior from
+free-tier infrastructure and network effects.
