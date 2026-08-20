@@ -6,8 +6,8 @@ from __future__ import annotations
 
 import gzip
 import shutil
+import subprocess
 import sys
-import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -20,8 +20,10 @@ def _fetch_gz(url: str, dest: Path) -> None:
         return
     tmp_gz = dest.with_suffix(dest.suffix + ".gz.tmp")
     print(f"[fetch] {url}")
-    with urllib.request.urlopen(url, timeout=60) as resp, open(tmp_gz, "wb") as f:
-        shutil.copyfileobj(resp, f)
+    # Shells out to curl rather than urllib: some sandboxed/corporate
+    # networks terminate TLS with a proxy CA that isn't in Python's certifi
+    # bundle but is in the system trust store curl uses.
+    subprocess.run(["curl", "-fsSL", "--max-time", "120", "-o", str(tmp_gz), url], check=True)
     with gzip.open(tmp_gz, "rb") as f_in, open(dest, "wb") as f_out:
         shutil.copyfileobj(f_in, f_out)
     tmp_gz.unlink()

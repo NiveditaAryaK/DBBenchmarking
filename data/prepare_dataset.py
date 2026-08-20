@@ -90,7 +90,10 @@ def forest_fire_sample(out_adj, in_adj, all_nodes: list[int]) -> tuple[set[int],
             if u in visited:
                 edge_count += 1
         for w in in_adj.get(v, ()):
-            if w in visited:
+            # w == v is a self-loop (cit-HepPh has 44): the out_adj pass
+            # above already counted it once via out_adj[v] containing v.
+            # Counting it again here would double-count that single edge.
+            if w in visited and w != v:
                 edge_count += 1
         return True
 
