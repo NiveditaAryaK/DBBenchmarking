@@ -39,7 +39,7 @@ services:
     memswap_limit: "512m"
     cpus: 0.5
     environment:
-      ARANGO_ROOT_PASSWORD: "changeme"
+      ARANGO_ROOT_PASSWORD: "${ARANGO_ROOT_PASSWORD}"
     volumes:
       - arangodb-data:/var/lib/arangodb3
 
