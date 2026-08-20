@@ -103,6 +103,13 @@ def forest_fire_sample(out_adj, in_adj, all_nodes: list[int]) -> tuple[set[int],
     seed_iter = iter(seed_candidates)
     restarts = 0
 
+    # Cap on any single fire's own contribution — see the comment on
+    # FOREST_FIRE_NUM_SEEDS in benchmark/config.py. Not a hard limit on the
+    # *number* of fires: if fires keep dying out below budget (queue empties
+    # early), sampling just keeps restarting from fresh seeds until the
+    # global target is met.
+    per_fire_edge_budget = max(1, config.SAMPLE_TARGET_EDGES // config.FOREST_FIRE_NUM_SEEDS)
+
     def target_met() -> bool:
         return len(visited) >= config.SAMPLE_MAX_NODES or edge_count >= config.SAMPLE_TARGET_EDGES
 
@@ -114,15 +121,19 @@ def forest_fire_sample(out_adj, in_adj, all_nodes: list[int]) -> tuple[set[int],
             break  # exhausted the graph before hitting the target
         add_node(seed)
         restarts += 1
+        fire_start_edges = edge_count
         queue = deque([seed])
 
-        while queue and not target_met():
+        def fire_budget_met() -> bool:
+            return edge_count - fire_start_edges >= per_fire_edge_budget
+
+        while queue and not target_met() and not fire_budget_met():
             v = queue.popleft()
 
             forward = [u for u in out_adj.get(v, ()) if u not in visited]
             rng.shuffle(forward)
             for u in forward:
-                if target_met():
+                if target_met() or fire_budget_met():
                     break
                 if rng.random() < config.FOREST_FIRE_FORWARD_P and add_node(u):
                     queue.append(u)
@@ -130,7 +141,7 @@ def forest_fire_sample(out_adj, in_adj, all_nodes: list[int]) -> tuple[set[int],
             backward = [w for w in in_adj.get(v, ()) if w not in visited]
             rng.shuffle(backward)
             for w in backward:
-                if target_met():
+                if target_met() or fire_budget_met():
                     break
                 if rng.random() < config.FOREST_FIRE_BACKWARD_P and add_node(w):
                     queue.append(w)

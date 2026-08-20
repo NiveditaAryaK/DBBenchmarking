@@ -43,7 +43,12 @@ DATASET_MANIFEST = DATA_PROCESSED / "manifest.json"
 # of OOM once indexes, edge metadata and query overhead are counted.
 SAMPLE_TARGET_EDGES = 105_000
 SAMPLE_MAX_NODES = 30_000
-SAMPLE_MIN_NODES = 15_000
+# Loose sanity floor, not a target to engineer toward: cit-HepPh's real
+# average degree (~24.4) means a locally faithful ~105k-edge sample can
+# legitimately need only ~7-8k nodes. Deliberately diluting the sample with
+# extra low-value periphery nodes just to clear a round number would make it
+# *less* representative of the source graph, not more.
+SAMPLE_MIN_NODES = 5_000
 SAMPLE_SEED = 42
 
 # Forest-fire sampling (Leskovec & Faloutsos 2006): a randomized variant of
@@ -55,7 +60,13 @@ SAMPLE_SEED = 42
 # connected components, and average/median/max degree.
 FOREST_FIRE_FORWARD_P = 0.35   # burn probability along outgoing (citing) edges
 FOREST_FIRE_BACKWARD_P = 0.20  # lower burn probability along incoming (cited-by) edges
-FOREST_FIRE_NUM_SEEDS = 8      # ambassador restarts if one fire dies out early
+# Each individual fire is capped at ~SAMPLE_TARGET_EDGES / FOREST_FIRE_NUM_SEEDS
+# edges before it is abandoned and a fresh random seed starts a new fire
+# elsewhere in the graph. Without this cap a single well-connected
+# neighborhood can consume the entire edge budget on its own (observed: one
+# fire reached 105k edges from one seed) — the sample would then describe
+# one corner of the citation network rather than the network as a whole.
+FOREST_FIRE_NUM_SEEDS = 8
 
 # A node with 0 outgoing edges makes 1/2/3-hop traversals trivially instant —
 # that measures nothing. Traversal start nodes are drawn only from nodes
