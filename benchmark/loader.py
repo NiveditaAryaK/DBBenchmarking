@@ -41,6 +41,13 @@ def _chunks(items: list, size: int):
         yield items[i : i + size]
 
 
+def expected_counts() -> tuple[int, int]:
+    """Node/edge counts the processed dataset *should* produce — used to
+    verify a platform's existing data before a bench-only run, without
+    re-reading the whole dataset into an adapter."""
+    return len(_read_nodes(config.DATASET_NODES_CSV)), len(_read_edges(config.DATASET_EDGES_CSV))
+
+
 def load_dataset(adapter: GraphAdapter, batch_size: int = config.LOAD_BATCH_SIZE) -> dict:
     """Wipes the target database, loads the processed dataset, and returns
     ingest throughput metrics. Node load and relationship load are timed
