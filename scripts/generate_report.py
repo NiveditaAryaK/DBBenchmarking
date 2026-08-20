@@ -141,8 +141,8 @@ def compute_winners(results: dict) -> list[dict]:
             True,
         )
     add("Aggregation (p95)", lambda r: _read_metric(r, "read_workloads", "aggregation", "p95_ms"), "ms", True)
-    add("Ingest throughput", lambda r: _read_metric(r, "load", "nodes_per_sec"), "nodes/s", False)
-    add("Ingest throughput", lambda r: _read_metric(r, "load", "rels_per_sec"), "rels/s", False)
+    add("Ingest throughput (nodes/sec)", lambda r: _read_metric(r, "load", "nodes_per_sec"), "nodes/s", False)
+    add("Ingest throughput (rels/sec)", lambda r: _read_metric(r, "load", "rels_per_sec"), "rels/s", False)
     for c in config.CONCURRENCY_LEVELS:
         add(f"Mixed workload QPS @ {c} clients", lambda r, c=c: _mixed_qps(r, c), "qps", False)
 
