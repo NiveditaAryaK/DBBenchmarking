@@ -483,7 +483,7 @@ def build_html(results: dict, winners: list[dict]) -> str:
         [
             card_for("Point lookup (p95)"),
             card_for(f"{config.HOP_DEPTHS[-1]}-hop traversal (p95)"),
-            card_for("Ingest throughput"),
+            card_for("Ingest throughput (rels/sec)"),
             card_for(f"Mixed workload QPS @ {config.CONCURRENCY_LEVELS[-1]} clients"),
         ]
     )
