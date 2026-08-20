@@ -1,4 +1,4 @@
-.PHONY: setup dataset load bench all report clean-results docker-up docker-down
+.PHONY: setup dataset load bench all report clean-results docker-up docker-down docker-reset
 
 VENV := .venv/bin
 PY := $(VENV)/python
