@@ -103,12 +103,14 @@ def run_command(platform_id: str, command: str, skip_mixed: bool = False) -> dic
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
         "batch_size": config.LOAD_BATCH_SIZE,
         # Where this run's client actually executed from — e.g. "us-east4-vm"
-        # vs "dev-sandbox". Not auto-detected (there's no reliable way to
-        # infer "is this the region-matched benchmark VM"); set
-        # BENCHMARK_CLIENT_ENV in .env. Surfaced in every generated report so
-        # a mismatched-environment run is visible, not silently blended in
-        # with real region-matched results.
-        "client_env": os.getenv("BENCHMARK_CLIENT_ENV", "unspecified"),
+        # vs "github-codespaces". Explicit BENCHMARK_CLIENT_ENV in .env wins;
+        # otherwise auto-detected from GitHub Codespaces' own CODESPACES env
+        # var (set automatically in every codespace), so this doesn't depend
+        # on remembering to set it by hand. Surfaced in every generated
+        # report so a mismatched-environment run is visible, not silently
+        # blended in with real region-matched results.
+        "client_env": os.getenv("BENCHMARK_CLIENT_ENV")
+        or ("github-codespaces" if os.getenv("CODESPACES") == "true" else "unspecified"),
         "status": "ok",
         "error": None,
         "load": None,

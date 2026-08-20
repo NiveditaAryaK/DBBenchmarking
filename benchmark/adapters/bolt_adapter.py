@@ -135,6 +135,10 @@ class BoltAdapter(GraphAdapter):
     def footprint(self) -> dict:
         out = {"nodes": self.count_nodes(), "edges": self.count_edges()}
         if self.spec.id == "memgraph":
+            out["note"] = (
+                "Container capped at 0.5 vCPU / 512 MB RAM (docker-compose); "
+                "byte-level graph storage not separately summarized here — see storage_info below."
+            )
             try:
                 with self.driver.session() as s:
                     rows = [dict(r) for r in s.run("SHOW STORAGE INFO")]

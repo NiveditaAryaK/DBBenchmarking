@@ -126,7 +126,14 @@ class ArangoDBAdapter(GraphAdapter):
         self.db.aql.execute(query)
 
     def footprint(self) -> dict:
-        out = {"nodes": self.count_nodes(), "edges": self.count_edges()}
+        out = {
+            "nodes": self.count_nodes(),
+            "edges": self.count_edges(),
+            "note": (
+                "Container capped at 0.5 vCPU / 512 MB RAM (docker-compose); "
+                "byte-level graph storage not separately summarized here — see collection statistics below."
+            ),
+        }
         try:
             out["node_collection_statistics"] = self.db.collection(NODE_COLLECTION).statistics()
             out["edge_collection_statistics"] = self.db.collection(EDGE_COLLECTION).statistics()
