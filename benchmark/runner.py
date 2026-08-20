@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from datetime import datetime, timezone
 
@@ -101,6 +102,13 @@ def run_command(platform_id: str, command: str, skip_mixed: bool = False) -> dic
         "command": command,
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
         "batch_size": config.LOAD_BATCH_SIZE,
+        # Where this run's client actually executed from — e.g. "us-east4-vm"
+        # vs "dev-sandbox". Not auto-detected (there's no reliable way to
+        # infer "is this the region-matched benchmark VM"); set
+        # BENCHMARK_CLIENT_ENV in .env. Surfaced in every generated report so
+        # a mismatched-environment run is visible, not silently blended in
+        # with real region-matched results.
+        "client_env": os.getenv("BENCHMARK_CLIENT_ENV", "unspecified"),
         "status": "ok",
         "error": None,
         "load": None,
