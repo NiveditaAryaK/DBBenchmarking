@@ -1,0 +1,21 @@
+{
+  "id": "memgraph",
+  "name": "Memgraph (self-hosted, capped)",
+  "deployment": "self-hosted-capped",
+  "driver": "bolt",
+  "query_language": "Cypher (openCypher)",
+  "advertised_vcpu": "0.5 (docker --cpus=0.5, matches CognoDB)",
+  "advertised_ram": "512 MB (docker -m 512m, matches CognoDB)",
+  "advertised_disk": "host-backed, not quota-limited; benchmark dataset kept below 1 GB",
+  "region_note": "Docker host documented explicitly in README run log",
+  "command": "load",
+  "timestamp_utc": "2026-08-20T13:24:22.453878+00:00",
+  "batch_size": 500,
+  "client_env": "unspecified",
+  "status": "failed",
+  "error": "FileNotFoundError: [Errno 2] No such file or directory: '/workspaces/DBBenchmarking/data/processed/nodes.csv'",
+  "load": null,
+  "read_workloads": null,
+  "footprint": null,
+  "mixed_workload_sweep": null
+}

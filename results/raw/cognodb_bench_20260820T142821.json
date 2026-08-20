@@ -1,0 +1,172 @@
+{
+  "id": "cognodb",
+  "name": "CognoDB Cloud",
+  "deployment": "managed-free-tier",
+  "driver": "bolt",
+  "query_language": "Cypher",
+  "advertised_vcpu": "0.5 (burstable)",
+  "advertised_ram": "512 MB",
+  "advertised_disk": "1 GB",
+  "region_note": "c0 free instance; benchmark client region documented in README",
+  "command": "bench",
+  "timestamp_utc": "2026-08-20T14:28:21.233717+00:00",
+  "batch_size": 500,
+  "client_env": "unspecified",
+  "status": "ok",
+  "error": null,
+  "load": null,
+  "read_workloads": {
+    "point_lookup": {
+      "n": 150,
+      "mean_ms": 5.036,
+      "p50_ms": 4.741,
+      "p95_ms": 6.855,
+      "p99_ms": 8.433,
+      "min_ms": 4.443,
+      "max_ms": 12.082
+    },
+    "indexed_lookup": {
+      "n": 150,
+      "mean_ms": 37.618,
+      "p50_ms": 36.015,
+      "p95_ms": 61.635,
+      "p99_ms": 70.438,
+      "min_ms": 8.076,
+      "max_ms": 72.375
+    },
+    "traversal": {
+      "hop1": {
+        "n": 150,
+        "mean_ms": 5.09,
+        "p50_ms": 4.899,
+        "p95_ms": 6.617,
+        "p99_ms": 7.508,
+        "min_ms": 4.385,
+        "max_ms": 8.397
+      },
+      "hop2": {
+        "n": 150,
+        "mean_ms": 8.27,
+        "p50_ms": 6.429,
+        "p95_ms": 16.473,
+        "p99_ms": 24.225,
+        "min_ms": 4.45,
+        "max_ms": 52.87
+      },
+      "hop3": {
+        "n": 150,
+        "mean_ms": 44.858,
+        "p50_ms": 13.885,
+        "p95_ms": 166.382,
+        "p99_ms": 340.716,
+        "min_ms": 4.377,
+        "max_ms": 666.927
+      }
+    },
+    "aggregation": {
+      "n": 150,
+      "mean_ms": 40.861,
+      "p50_ms": 39.798,
+      "p95_ms": 70.093,
+      "p99_ms": 78.297,
+      "min_ms": 19.507,
+      "max_ms": 95.309
+    }
+  },
+  "footprint": {
+    "nodes": 8769,
+    "edges": 105000,
+    "note": "Byte-level storage size is not exposed over Bolt on this platform's free tier; see the platform console/dashboard."
+  },
+  "mixed_workload_sweep": {
+    "1": {
+      "concurrency": 1,
+      "run_valid": true,
+      "workers_connected": 1,
+      "workers_failed_to_connect": 0,
+      "duration_sec": 60.005,
+      "successful_ops": 10145,
+      "failed_ops": 0,
+      "error_rate": 0.0,
+      "runtime_errors": [],
+      "qps": 169.07,
+      "op_breakdown": {
+        "point_lookup": 4064,
+        "hop1": 2472,
+        "hop2": 1568,
+        "write": 2041
+      }
+    },
+    "10": {
+      "concurrency": 10,
+      "run_valid": true,
+      "workers_connected": 10,
+      "workers_failed_to_connect": 0,
+      "duration_sec": 60.025,
+      "successful_ops": 23989,
+      "failed_ops": 4,
+      "error_rate": 0.0002,
+      "runtime_errors": [
+        "{neo4j_code: Neo.TransientError.Transaction.DeadlockDetected} {message: commit transaction: transaction conflict (retryable): node 15770 modified concurrently} {gql_status: 50N42} {gql_status_description: error: general processing exception - unexpected error. commit transaction: transaction conflict (retryable): node 15770 modified concurrently}",
+        "{neo4j_code: Neo.TransientError.Transaction.DeadlockDetected} {message: commit transaction: transaction conflict (retryable): node 16784 modified concurrently} {gql_status: 50N42} {gql_status_description: error: general processing exception - unexpected error. commit transaction: transaction conflict (retryable): node 16784 modified concurrently}",
+        "{neo4j_code: Neo.TransientError.Transaction.DeadlockDetected} {message: commit transaction: transaction conflict (retryable): node 15818 modified concurrently} {gql_status: 50N42} {gql_status_description: error: general processing exception - unexpected error. commit transaction: transaction conflict (retryable): node 15818 modified concurrently}",
+        "{neo4j_code: Neo.TransientError.Transaction.DeadlockDetected} {message: commit transaction: transaction conflict (retryable): node 16784 modified concurrently} {gql_status: 50N42} {gql_status_description: error: general processing exception - unexpected error. commit transaction: transaction conflict (retryable): node 16784 modified concurrently}"
+      ],
+      "qps": 399.65,
+      "op_breakdown": {
+        "point_lookup": 9571,
+        "hop1": 5805,
+        "hop2": 3895,
+        "write": 4718
+      }
+    },
+    "20": {
+      "concurrency": 20,
+      "run_valid": true,
+      "workers_connected": 20,
+      "workers_failed_to_connect": 0,
+      "duration_sec": 60.058,
+      "successful_ops": 25055,
+      "failed_ops": 13,
+      "error_rate": 0.0005,
+      "runtime_errors": [
+        "{neo4j_code: Neo.TransientError.Transaction.DeadlockDetected} {message: commit transaction: transaction conflict (retryable): node 10058 modified concurrently} {gql_status: 50N42} {gql_status_description: error: general processing exception - unexpected error. commit transaction: transaction conflict (retryable): node 10058 modified concurrently}",
+        "{neo4j_code: Neo.TransientError.Transaction.DeadlockDetected} {message: commit transaction: transaction conflict (retryable): node 11921 modified concurrently} {gql_status: 50N42} {gql_status_description: error: general processing exception - unexpected error. commit transaction: transaction conflict (retryable): node 11921 modified concurrently}",
+        "{neo4j_code: Neo.TransientError.Transaction.DeadlockDetected} {message: commit transaction: transaction conflict (retryable): node 16184 modified concurrently} {gql_status: 50N42} {gql_status_description: error: general processing exception - unexpected error. commit transaction: transaction conflict (retryable): node 16184 modified concurrently}",
+        "{neo4j_code: Neo.TransientError.Transaction.DeadlockDetected} {message: commit transaction: transaction conflict (retryable): node 11921 modified concurrently} {gql_status: 50N42} {gql_status_description: error: general processing exception - unexpected error. commit transaction: transaction conflict (retryable): node 11921 modified concurrently}",
+        "{neo4j_code: Neo.TransientError.Transaction.DeadlockDetected} {message: commit transaction: transaction conflict (retryable): node 9467 modified concurrently} {gql_status: 50N42} {gql_status_description: error: general processing exception - unexpected error. commit transaction: transaction conflict (retryable): node 9467 modified concurrently}"
+      ],
+      "qps": 417.18,
+      "op_breakdown": {
+        "point_lookup": 9980,
+        "hop1": 6085,
+        "hop2": 4076,
+        "write": 4914
+      }
+    },
+    "40": {
+      "concurrency": 40,
+      "run_valid": true,
+      "workers_connected": 40,
+      "workers_failed_to_connect": 0,
+      "duration_sec": 60.096,
+      "successful_ops": 26424,
+      "failed_ops": 73,
+      "error_rate": 0.0028,
+      "runtime_errors": [
+        "{neo4j_code: Neo.TransientError.Transaction.DeadlockDetected} {message: commit transaction: transaction conflict (retryable): node 16461 modified concurrently} {gql_status: 50N42} {gql_status_description: error: general processing exception - unexpected error. commit transaction: transaction conflict (retryable): node 16461 modified concurrently}",
+        "{neo4j_code: Neo.TransientError.Transaction.DeadlockDetected} {message: commit transaction: transaction conflict (retryable): node 9033 modified concurrently} {gql_status: 50N42} {gql_status_description: error: general processing exception - unexpected error. commit transaction: transaction conflict (retryable): node 9033 modified concurrently}",
+        "{neo4j_code: Neo.TransientError.Transaction.DeadlockDetected} {message: commit transaction: transaction conflict (retryable): node 13283 modified concurrently} {gql_status: 50N42} {gql_status_description: error: general processing exception - unexpected error. commit transaction: transaction conflict (retryable): node 13283 modified concurrently}",
+        "{neo4j_code: Neo.TransientError.Transaction.DeadlockDetected} {message: commit transaction: transaction conflict (retryable): node 12276 modified concurrently} {gql_status: 50N42} {gql_status_description: error: general processing exception - unexpected error. commit transaction: transaction conflict (retryable): node 12276 modified concurrently}",
+        "{neo4j_code: Neo.TransientError.Transaction.DeadlockDetected} {message: commit transaction: transaction conflict (retryable): node 17382 modified concurrently} {gql_status: 50N42} {gql_status_description: error: general processing exception - unexpected error. commit transaction: transaction conflict (retryable): node 17382 modified concurrently}"
+      ],
+      "qps": 439.7,
+      "op_breakdown": {
+        "point_lookup": 10715,
+        "hop1": 6341,
+        "hop2": 4183,
+        "write": 5185
+      }
+    }
+  }
+}

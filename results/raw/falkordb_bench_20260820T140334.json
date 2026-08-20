@@ -1,0 +1,155 @@
+{
+  "id": "falkordb",
+  "name": "FalkorDB Cloud (Free)",
+  "deployment": "managed-free-tier",
+  "driver": "falkordb",
+  "query_language": "Cypher (openCypher subset)",
+  "advertised_vcpu": "shared",
+  "advertised_ram": "100 MB",
+  "advertised_disk": "shared (RAM-backed)",
+  "region_note": "Free cloud instance; benchmark client region documented in README",
+  "command": "bench",
+  "timestamp_utc": "2026-08-20T14:03:34.295831+00:00",
+  "batch_size": 500,
+  "client_env": "unspecified",
+  "status": "ok",
+  "error": null,
+  "load": null,
+  "read_workloads": {
+    "point_lookup": {
+      "n": 150,
+      "mean_ms": 3.297,
+      "p50_ms": 3.191,
+      "p95_ms": 3.396,
+      "p99_ms": 5.108,
+      "min_ms": 3.089,
+      "max_ms": 11.36
+    },
+    "indexed_lookup": {
+      "n": 150,
+      "mean_ms": 7.311,
+      "p50_ms": 7.336,
+      "p95_ms": 9.168,
+      "p99_ms": 14.78,
+      "min_ms": 3.789,
+      "max_ms": 16.04
+    },
+    "traversal": {
+      "hop1": {
+        "n": 150,
+        "mean_ms": 3.339,
+        "p50_ms": 3.29,
+        "p95_ms": 3.635,
+        "p99_ms": 4.507,
+        "min_ms": 3.121,
+        "max_ms": 4.671
+      },
+      "hop2": {
+        "n": 150,
+        "mean_ms": 3.692,
+        "p50_ms": 3.522,
+        "p95_ms": 5.032,
+        "p99_ms": 5.996,
+        "min_ms": 3.106,
+        "max_ms": 6.272
+      },
+      "hop3": {
+        "n": 150,
+        "mean_ms": 4.796,
+        "p50_ms": 4.105,
+        "p95_ms": 7.776,
+        "p99_ms": 14.597,
+        "min_ms": 3.115,
+        "max_ms": 15.515
+      }
+    },
+    "aggregation": {
+      "n": 150,
+      "mean_ms": 5.344,
+      "p50_ms": 5.301,
+      "p95_ms": 5.704,
+      "p99_ms": 6.168,
+      "min_ms": 5.165,
+      "max_ms": 6.27
+    }
+  },
+  "footprint": {
+    "nodes": 8769,
+    "edges": 105000,
+    "note": "FalkorDB Cloud free tier does not expose per-graph memory usage over the client API."
+  },
+  "mixed_workload_sweep": {
+    "1": {
+      "concurrency": 1,
+      "run_valid": true,
+      "workers_connected": 1,
+      "workers_failed_to_connect": 0,
+      "duration_sec": 60.001,
+      "successful_ops": 18893,
+      "failed_ops": 0,
+      "error_rate": 0.0,
+      "runtime_errors": [],
+      "qps": 314.88,
+      "op_breakdown": {
+        "point_lookup": 7594,
+        "hop1": 4580,
+        "hop2": 2964,
+        "write": 3755
+      }
+    },
+    "10": {
+      "concurrency": 10,
+      "run_valid": true,
+      "workers_connected": 10,
+      "workers_failed_to_connect": 0,
+      "duration_sec": 60.006,
+      "successful_ops": 167162,
+      "failed_ops": 0,
+      "error_rate": 0.0,
+      "runtime_errors": [],
+      "qps": 2785.74,
+      "op_breakdown": {
+        "point_lookup": 66888,
+        "hop1": 40237,
+        "hop2": 26674,
+        "write": 33363
+      }
+    },
+    "20": {
+      "concurrency": 20,
+      "run_valid": true,
+      "workers_connected": 20,
+      "workers_failed_to_connect": 0,
+      "duration_sec": 60.034,
+      "successful_ops": 156298,
+      "failed_ops": 0,
+      "error_rate": 0.0,
+      "runtime_errors": [],
+      "qps": 2603.51,
+      "op_breakdown": {
+        "point_lookup": 62352,
+        "hop1": 37723,
+        "hop2": 24850,
+        "write": 31373
+      }
+    },
+    "40": {
+      "concurrency": 40,
+      "run_valid": true,
+      "workers_connected": 40,
+      "workers_failed_to_connect": 0,
+      "duration_sec": 60.025,
+      "successful_ops": 170934,
+      "failed_ops": 0,
+      "error_rate": 0.0,
+      "runtime_errors": [],
+      "qps": 2847.71,
+      "op_breakdown": {
+        "point_lookup": 68367,
+        "hop1": 41096,
+        "hop2": 27340,
+        "write": 34131
+      }
+    }
+  }
+}

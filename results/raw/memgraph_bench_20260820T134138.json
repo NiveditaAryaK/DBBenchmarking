@@ -1,0 +1,21 @@
+{
+  "id": "memgraph",
+  "name": "Memgraph (self-hosted, capped)",
+  "deployment": "self-hosted-capped",
+  "driver": "bolt",
+  "query_language": "Cypher (openCypher)",
+  "advertised_vcpu": "0.5 (docker --cpus=0.5, matches CognoDB)",
+  "advertised_ram": "512 MB (docker -m 512m, matches CognoDB)",
+  "advertised_disk": "host-backed, not quota-limited; benchmark dataset kept below 1 GB",
+  "region_note": "Docker host documented explicitly in README run log",
+  "command": "bench",
+  "timestamp_utc": "2026-08-20T13:41:38.122938+00:00",
+  "batch_size": 500,
+  "client_env": "unspecified",
+  "status": "failed",
+  "error": "RuntimeError: Dataset verification failed before benchmark: expected 8769 nodes / 105000 relationships, found 0 nodes / 0 relationships. Run `python -m benchmark.runner load --platform memgraph` first.",
+  "load": null,
+  "read_workloads": null,
+  "footprint": null,
+  "mixed_workload_sweep": null
+}

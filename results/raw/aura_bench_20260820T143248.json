@@ -1,0 +1,21 @@
+{
+  "id": "aura",
+  "name": "Neo4j AuraDB Free",
+  "deployment": "managed-free-tier",
+  "driver": "bolt",
+  "query_language": "Cypher",
+  "advertised_vcpu": "not disclosed (shared)",
+  "advertised_ram": "not disclosed (Neo4j caps by node/rel count, not RAM)",
+  "advertised_disk": "not disclosed",
+  "region_note": "Free tier; benchmark client region documented in README",
+  "command": "bench",
+  "timestamp_utc": "2026-08-20T14:32:48.391317+00:00",
+  "batch_size": 500,
+  "client_env": "unspecified",
+  "status": "failed",
+  "error": "ServiceUnavailable: Unable to retrieve routing information",
+  "load": null,
+  "read_workloads": null,
+  "footprint": null,
+  "mixed_workload_sweep": null
+}

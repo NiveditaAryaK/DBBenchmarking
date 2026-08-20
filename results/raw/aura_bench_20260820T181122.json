@@ -1,0 +1,155 @@
+{
+  "id": "aura",
+  "name": "Neo4j AuraDB Free",
+  "deployment": "managed-free-tier",
+  "driver": "bolt",
+  "query_language": "Cypher",
+  "advertised_vcpu": "not disclosed (shared)",
+  "advertised_ram": "not disclosed (Neo4j caps by node/rel count, not RAM)",
+  "advertised_disk": "not disclosed",
+  "region_note": "Free tier; benchmark client region documented in README",
+  "command": "bench",
+  "timestamp_utc": "2026-08-20T18:11:22.766372+00:00",
+  "batch_size": 500,
+  "client_env": "unspecified",
+  "status": "ok",
+  "error": null,
+  "load": null,
+  "read_workloads": {
+    "point_lookup": {
+      "n": 150,
+      "mean_ms": 241.542,
+      "p50_ms": 224.935,
+      "p95_ms": 226.515,
+      "p99_ms": 909.2,
+      "min_ms": 224.124,
+      "max_ms": 1354.09
+    },
+    "indexed_lookup": {
+      "n": 150,
+      "mean_ms": 346.305,
+      "p50_ms": 244.007,
+      "p95_ms": 474.888,
+      "p99_ms": 1394.507,
+      "min_ms": 227.161,
+      "max_ms": 1830.615
+    },
+    "traversal": {
+      "hop1": {
+        "n": 150,
+        "mean_ms": 248.29,
+        "p50_ms": 225.299,
+        "p95_ms": 226.254,
+        "p99_ms": 1356.475,
+        "min_ms": 224.436,
+        "max_ms": 1407.674
+      },
+      "hop2": {
+        "n": 150,
+        "mean_ms": 249.565,
+        "p50_ms": 226.209,
+        "p95_ms": 231.852,
+        "p99_ms": 1360.02,
+        "min_ms": 224.19,
+        "max_ms": 1376.836
+      },
+      "hop3": {
+        "n": 150,
+        "mean_ms": 257.918,
+        "p50_ms": 228.604,
+        "p95_ms": 244.645,
+        "p99_ms": 1347.734,
+        "min_ms": 224.701,
+        "max_ms": 1373.962
+      }
+    },
+    "aggregation": {
+      "n": 150,
+      "mean_ms": 250.029,
+      "p50_ms": 227.457,
+      "p95_ms": 229.796,
+      "p99_ms": 1342.521,
+      "min_ms": 226.302,
+      "max_ms": 1351.488
+    }
+  },
+  "footprint": {
+    "nodes": 8769,
+    "edges": 105000,
+    "note": "Byte-level storage size is not exposed over Bolt on this platform's free tier; see the platform console/dashboard."
+  },
+  "mixed_workload_sweep": {
+    "1": {
+      "concurrency": 1,
+      "run_valid": true,
+      "workers_connected": 1,
+      "workers_failed_to_connect": 0,
+      "duration_sec": 60.053,
+      "successful_ops": 235,
+      "failed_ops": 0,
+      "error_rate": 0.0,
+      "runtime_errors": [],
+      "qps": 3.91,
+      "op_breakdown": {
+        "point_lookup": 97,
+        "hop1": 48,
+        "hop2": 47,
+        "write": 43
+      }
+    },
+    "10": {
+      "concurrency": 10,
+      "run_valid": true,
+      "workers_connected": 10,
+      "workers_failed_to_connect": 0,
+      "duration_sec": 60.174,
+      "successful_ops": 2359,
+      "failed_ops": 0,
+      "error_rate": 0.0,
+      "runtime_errors": [],
+      "qps": 39.2,
+      "op_breakdown": {
+        "point_lookup": 942,
+        "hop1": 572,
+        "hop2": 383,
+        "write": 462
+      }
+    },
+    "20": {
+      "concurrency": 20,
+      "run_valid": true,
+      "workers_connected": 20,
+      "workers_failed_to_connect": 0,
+      "duration_sec": 60.227,
+      "successful_ops": 4705,
+      "failed_ops": 0,
+      "error_rate": 0.0,
+      "runtime_errors": [],
+      "qps": 78.12,
+      "op_breakdown": {
+        "point_lookup": 1868,
+        "hop1": 1135,
+        "hop2": 777,
+        "write": 925
+      }
+    },
+    "40": {
+      "concurrency": 40,
+      "run_valid": true,
+      "workers_connected": 40,
+      "workers_failed_to_connect": 0,
+      "duration_sec": 60.226,
+      "successful_ops": 9362,
+      "failed_ops": 0,
+      "error_rate": 0.0,
+      "runtime_errors": [],
+      "qps": 155.45,
+      "op_breakdown": {
+        "point_lookup": 3773,
+        "hop1": 2249,
+        "hop2": 1502,
+        "write": 1838
+      }
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "source": "SNAP cit-HepPh (https://snap.stanford.edu/data/cit-HepPh.html)",
+  "source_full_graph": {
+    "nodes": 34546,
+    "edges": 421578
+  },
+  "sampling_method": "forest-fire (Leskovec & Faloutsos 2006)",
+  "sampling_params": {
+    "seed": 42,
+    "forward_burn_p": 0.35,
+    "backward_burn_p": 0.2,
+    "target_edges": 105000,
+    "max_nodes": 30000,
+    "fire_restarts": 13
+  },
+  "sample_graph": {
+    "nodes": 8769,
+    "edges": 105000,
+    "avg_degree": 23.948,
+    "median_degree": 17,
+    "max_degree": 314,
+    "isolated_nodes": 0,
+    "connected_components": 1,
+    "largest_component_size": 8769,
+    "largest_component_fraction": 1.0
+  },
+  "node_properties": {
+    "year_source": "cit-HepPh-dates.txt, joined on paperId (handles 11<id> cross-listing prefix)",
+    "year_present_count": 8047,
+    "year_missing_count": 722,
+    "note": "No synthetic/fabricated years \u2014 papers with no source date simply have no `year` property."
+  },
+  "query_sample": {
+    "point_lookup_pool_size": 8769,
+    "traversal_pool_size": 8225,
+    "traversal_min_out_degree": 1,
+    "indexed_lookup_pool_size": 8047,
+    "warmup_iterations": 20,
+    "measured_iterations": 150,
+    "point_lookup_sampled": 170,
+    "traversal_sampled": 170,
+    "indexed_lookup_sampled": 170
+  }
+}

@@ -1,0 +1,232 @@
+{
+  "id": "memgraph",
+  "name": "Memgraph (self-hosted, capped)",
+  "deployment": "self-hosted-capped",
+  "driver": "bolt",
+  "query_language": "Cypher (openCypher)",
+  "advertised_vcpu": "0.5 (docker --cpus=0.5, matches CognoDB)",
+  "advertised_ram": "512 MB (docker -m 512m, matches CognoDB)",
+  "advertised_disk": "host-backed, not quota-limited; benchmark dataset kept below 1 GB",
+  "region_note": "Docker host documented explicitly in README run log",
+  "command": "bench",
+  "timestamp_utc": "2026-08-20T18:01:37.354189+00:00",
+  "batch_size": 500,
+  "client_env": "unspecified",
+  "status": "ok",
+  "error": null,
+  "load": null,
+  "read_workloads": {
+    "point_lookup": {
+      "n": 150,
+      "mean_ms": 3.931,
+      "p50_ms": 2.33,
+      "p95_ms": 3.184,
+      "p99_ms": 41.563,
+      "min_ms": 2.236,
+      "max_ms": 42.407
+    },
+    "indexed_lookup": {
+      "n": 150,
+      "mean_ms": 18.593,
+      "p50_ms": 19.611,
+      "p95_ms": 24.507,
+      "p99_ms": 28.644,
+      "min_ms": 3.891,
+      "max_ms": 30.979
+    },
+    "traversal": {
+      "hop1": {
+        "n": 150,
+        "mean_ms": 3.968,
+        "p50_ms": 2.585,
+        "p95_ms": 3.629,
+        "p99_ms": 36.803,
+        "min_ms": 2.293,
+        "max_ms": 37.596
+      },
+      "hop2": {
+        "n": 150,
+        "mean_ms": 5.015,
+        "p50_ms": 3.636,
+        "p95_ms": 12.631,
+        "p99_ms": 26.18,
+        "min_ms": 2.322,
+        "max_ms": 29.929
+      },
+      "hop3": {
+        "n": 150,
+        "mean_ms": 7.921,
+        "p50_ms": 5.487,
+        "p95_ms": 18.583,
+        "p99_ms": 29.226,
+        "min_ms": 2.374,
+        "max_ms": 36.19
+      }
+    },
+    "aggregation": {
+      "n": 150,
+      "mean_ms": 5.982,
+      "p50_ms": 2.894,
+      "p95_ms": 38.134,
+      "p99_ms": 71.471,
+      "min_ms": 2.72,
+      "max_ms": 75.324
+    }
+  },
+  "footprint": {
+    "nodes": 8769,
+    "edges": 105000,
+    "storage_info": [
+      {
+        "storage info": "name",
+        "value": "memgraph"
+      },
+      {
+        "storage info": "vertex_count",
+        "value": 8769
+      },
+      {
+        "storage info": "edge_count",
+        "value": 105000
+      },
+      {
+        "storage info": "average_degree",
+        "value": 23.947998631542934
+      },
+      {
+        "storage info": "vm_max_map_count",
+        "value": 65530
+      },
+      {
+        "storage info": "memory_res",
+        "value": "122.02MiB"
+      },
+      {
+        "storage info": "peak_memory_res",
+        "value": "122.02MiB"
+      },
+      {
+        "storage info": "unreleased_delta_objects",
+        "value": 0
+      },
+      {
+        "storage info": "disk_usage",
+        "value": "26.82MiB"
+      },
+      {
+        "storage info": "memory_tracked",
+        "value": "46.34MiB"
+      },
+      {
+        "storage info": "allocation_limit",
+        "value": "14.06GiB"
+      },
+      {
+        "storage info": "global_isolation_level",
+        "value": "SNAPSHOT_ISOLATION"
+      },
+      {
+        "storage info": "session_isolation_level",
+        "value": ""
+      },
+      {
+        "storage info": "next_session_isolation_level",
+        "value": ""
+      },
+      {
+        "storage info": "storage_mode",
+        "value": "IN_MEMORY_TRANSACTIONAL"
+      }
+    ]
+  },
+  "mixed_workload_sweep": {
+    "1": {
+      "concurrency": 1,
+      "run_valid": true,
+      "workers_connected": 1,
+      "workers_failed_to_connect": 0,
+      "duration_sec": 60.003,
+      "successful_ops": 14649,
+      "failed_ops": 0,
+      "error_rate": 0.0,
+      "runtime_errors": [],
+      "qps": 244.14,
+      "op_breakdown": {
+        "point_lookup": 5910,
+        "hop1": 3534,
+        "hop2": 2288,
+        "write": 2917
+      }
+    },
+    "10": {
+      "concurrency": 10,
+      "run_valid": true,
+      "workers_connected": 10,
+      "workers_failed_to_connect": 0,
+      "duration_sec": 60.017,
+      "successful_ops": 9979,
+      "failed_ops": 4,
+      "error_rate": 0.0004,
+      "runtime_errors": [
+        "{neo4j_code: Memgraph.TransientError.MemgraphError.MemgraphError} {message: Cannot resolve conflicting transactions. You can retry this transaction when the conflicting transaction is finished} {gql_status: 50N42} {gql_status_description: error: general processing exception - unexpected error. Cannot resolve conflicting transactions. You can retry this transaction when the conflicting transaction is finished}",
+        "{neo4j_code: Memgraph.TransientError.MemgraphError.MemgraphError} {message: Cannot resolve conflicting transactions. You can retry this transaction when the conflicting transaction is finished} {gql_status: 50N42} {gql_status_description: error: general processing exception - unexpected error. Cannot resolve conflicting transactions. You can retry this transaction when the conflicting transaction is finished}",
+        "{neo4j_code: Memgraph.TransientError.MemgraphError.MemgraphError} {message: Cannot resolve conflicting transactions. You can retry this transaction when the conflicting transaction is finished} {gql_status: 50N42} {gql_status_description: error: general processing exception - unexpected error. Cannot resolve conflicting transactions. You can retry this transaction when the conflicting transaction is finished}",
+        "{neo4j_code: Memgraph.TransientError.MemgraphError.MemgraphError} {message: Cannot resolve conflicting transactions. You can retry this transaction when the conflicting transaction is finished} {gql_status: 50N42} {gql_status_description: error: general processing exception - unexpected error. Cannot resolve conflicting transactions. You can retry this transaction when the conflicting transaction is finished}"
+      ],
+      "qps": 166.27,
+      "op_breakdown": {
+        "point_lookup": 3988,
+        "hop1": 2416,
+        "hop2": 1638,
+        "write": 1937
+      }
+    },
+    "20": {
+      "concurrency": 20,
+      "run_valid": true,
+      "workers_connected": 20,
+      "workers_failed_to_connect": 0,
+      "duration_sec": 60.102,
+      "successful_ops": 9995,
+      "failed_ops": 4,
+      "error_rate": 0.0004,
+      "runtime_errors": [
+        "{neo4j_code: Memgraph.TransientError.MemgraphError.MemgraphError} {message: Cannot resolve conflicting transactions. You can retry this transaction when the conflicting transaction is finished} {gql_status: 50N42} {gql_status_description: error: general processing exception - unexpected error. Cannot resolve conflicting transactions. You can retry this transaction when the conflicting transaction is finished}",
+        "{neo4j_code: Memgraph.TransientError.MemgraphError.MemgraphError} {message: Cannot resolve conflicting transactions. You can retry this transaction when the conflicting transaction is finished} {gql_status: 50N42} {gql_status_description: error: general processing exception - unexpected error. Cannot resolve conflicting transactions. You can retry this transaction when the conflicting transaction is finished}",
+        "{neo4j_code: Memgraph.TransientError.MemgraphError.MemgraphError} {message: Cannot resolve conflicting transactions. You can retry this transaction when the conflicting transaction is finished} {gql_status: 50N42} {gql_status_description: error: general processing exception - unexpected error. Cannot resolve conflicting transactions. You can retry this transaction when the conflicting transaction is finished}",
+        "{neo4j_code: Memgraph.TransientError.MemgraphError.MemgraphError} {message: Cannot resolve conflicting transactions. You can retry this transaction when the conflicting transaction is finished} {gql_status: 50N42} {gql_status_description: error: general processing exception - unexpected error. Cannot resolve conflicting transactions. You can retry this transaction when the conflicting transaction is finished}"
+      ],
+      "qps": 166.3,
+      "op_breakdown": {
+        "point_lookup": 3976,
+        "hop1": 2429,
+        "hop2": 1602,
+        "write": 1988
+      }
+    },
+    "40": {
+      "concurrency": 40,
+      "run_valid": true,
+      "workers_connected": 40,
+      "workers_failed_to_connect": 0,
+      "duration_sec": 60.297,
+      "successful_ops": 9968,
+      "failed_ops": 7,
+      "error_rate": 0.0007,
+      "runtime_errors": [
+        "{neo4j_code: Memgraph.TransientError.MemgraphError.MemgraphError} {message: Cannot resolve conflicting transactions. You can retry this transaction when the conflicting transaction is finished} {gql_status: 50N42} {gql_status_description: error: general processing exception - unexpected error. Cannot resolve conflicting transactions. You can retry this transaction when the conflicting transaction is finished}",
+        "{neo4j_code: Memgraph.TransientError.MemgraphError.MemgraphError} {message: Cannot resolve conflicting transactions. You can retry this transaction when the conflicting transaction is finished} {gql_status: 50N42} {gql_status_description: error: general processing exception - unexpected error. Cannot resolve conflicting transactions. You can retry this transaction when the conflicting transaction is finished}",
+        "{neo4j_code: Memgraph.TransientError.MemgraphError.MemgraphError} {message: Cannot resolve conflicting transactions. You can retry this transaction when the conflicting transaction is finished} {gql_status: 50N42} {gql_status_description: error: general processing exception - unexpected error. Cannot resolve conflicting transactions. You can retry this transaction when the conflicting transaction is finished}",
+        "{neo4j_code: Memgraph.TransientError.MemgraphError.MemgraphError} {message: Cannot resolve conflicting transactions. You can retry this transaction when the conflicting transaction is finished} {gql_status: 50N42} {gql_status_description: error: general processing exception - unexpected error. Cannot resolve conflicting transactions. You can retry this transaction when the conflicting transaction is finished}",
+        "{neo4j_code: Memgraph.TransientError.MemgraphError.MemgraphError} {message: Cannot resolve conflicting transactions. You can retry this transaction when the conflicting transaction is finished} {gql_status: 50N42} {gql_status_description: error: general processing exception - unexpected error. Cannot resolve conflicting transactions. You can retry this transaction when the conflicting transaction is finished}"
+      ],
+      "qps": 165.32,
+      "op_breakdown": {
+        "point_lookup": 4020,
+        "hop1": 2403,
+        "hop2": 1591,
+        "write": 1954
+      }
+    }
+  }
+}

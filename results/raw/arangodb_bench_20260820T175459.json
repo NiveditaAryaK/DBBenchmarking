@@ -1,0 +1,187 @@
+{
+  "id": "arangodb",
+  "name": "ArangoDB (self-hosted, capped)",
+  "deployment": "self-hosted-capped",
+  "driver": "arangodb",
+  "query_language": "AQL",
+  "advertised_vcpu": "0.5 (docker --cpus=0.5, matches CognoDB)",
+  "advertised_ram": "512 MB (docker -m 512m, matches CognoDB)",
+  "advertised_disk": "host-backed, not quota-limited; benchmark dataset kept below 1 GB",
+  "region_note": "Docker host documented explicitly in README run log",
+  "command": "bench",
+  "timestamp_utc": "2026-08-20T17:54:59.233553+00:00",
+  "batch_size": 500,
+  "client_env": "unspecified",
+  "status": "ok",
+  "error": null,
+  "load": null,
+  "read_workloads": {
+    "point_lookup": {
+      "n": 150,
+      "mean_ms": 1.043,
+      "p50_ms": 1.007,
+      "p95_ms": 1.234,
+      "p99_ms": 1.326,
+      "min_ms": 0.953,
+      "max_ms": 1.338
+    },
+    "indexed_lookup": {
+      "n": 150,
+      "mean_ms": 3.678,
+      "p50_ms": 3.035,
+      "p95_ms": 4.87,
+      "p99_ms": 14.859,
+      "min_ms": 1.583,
+      "max_ms": 16.395
+    },
+    "traversal": {
+      "hop1": {
+        "n": 150,
+        "mean_ms": 1.868,
+        "p50_ms": 1.672,
+        "p95_ms": 2.923,
+        "p99_ms": 4.543,
+        "min_ms": 1.452,
+        "max_ms": 7.139
+      },
+      "hop2": {
+        "n": 150,
+        "mean_ms": 5.21,
+        "p50_ms": 2.655,
+        "p95_ms": 22.805,
+        "p99_ms": 38.554,
+        "min_ms": 1.461,
+        "max_ms": 49.988
+      },
+      "hop3": {
+        "n": 150,
+        "mean_ms": 35.377,
+        "p50_ms": 7.832,
+        "p95_ms": 140.246,
+        "p99_ms": 324.313,
+        "min_ms": 1.483,
+        "max_ms": 436.768
+      }
+    },
+    "aggregation": {
+      "n": 150,
+      "mean_ms": 6.237,
+      "p50_ms": 3.492,
+      "p95_ms": 44.254,
+      "p99_ms": 48.878,
+      "min_ms": 3.375,
+      "max_ms": 51.183
+    }
+  },
+  "footprint": {
+    "nodes": 8769,
+    "edges": 105000,
+    "node_collection_statistics": {
+      "indexes": {
+        "count": 2,
+        "size": 405176
+      },
+      "documents_size": 867322,
+      "cache_in_use": false,
+      "cache_size": 0,
+      "cache_usage": 0
+    },
+    "edge_collection_statistics": {
+      "indexes": {
+        "count": 2,
+        "size": 10052897
+      },
+      "documents_size": 8459902,
+      "cache_in_use": false,
+      "cache_size": 0,
+      "cache_usage": 0
+    }
+  },
+  "mixed_workload_sweep": {
+    "1": {
+      "concurrency": 1,
+      "run_valid": true,
+      "workers_connected": 1,
+      "workers_failed_to_connect": 0,
+      "duration_sec": 60.001,
+      "successful_ops": 35154,
+      "failed_ops": 0,
+      "error_rate": 0.0,
+      "runtime_errors": [],
+      "qps": 585.89,
+      "op_breakdown": {
+        "point_lookup": 14044,
+        "hop1": 8515,
+        "hop2": 5604,
+        "write": 6991
+      }
+    },
+    "10": {
+      "concurrency": 10,
+      "run_valid": true,
+      "workers_connected": 10,
+      "workers_failed_to_connect": 0,
+      "duration_sec": 60.015,
+      "successful_ops": 29689,
+      "failed_ops": 2,
+      "error_rate": 0.0001,
+      "runtime_errors": [
+        "[HTTP 409][ERR 1200] AQL: write-write conflict [node #6: UpdateNode] (while executing)",
+        "[HTTP 409][ERR 1200] AQL: write-write conflict [node #6: UpdateNode] (while executing)"
+      ],
+      "qps": 494.69,
+      "op_breakdown": {
+        "point_lookup": 11885,
+        "hop1": 7171,
+        "hop2": 4809,
+        "write": 5824
+      }
+    },
+    "20": {
+      "concurrency": 20,
+      "run_valid": true,
+      "workers_connected": 20,
+      "workers_failed_to_connect": 0,
+      "duration_sec": 60.056,
+      "successful_ops": 29728,
+      "failed_ops": 3,
+      "error_rate": 0.0001,
+      "runtime_errors": [
+        "[HTTP 409][ERR 1200] AQL: write-write conflict [node #6: UpdateNode] (while executing)",
+        "[HTTP 409][ERR 1200] AQL: write-write conflict [node #6: UpdateNode] (while executing)",
+        "[HTTP 409][ERR 1200] AQL: write-write conflict [node #6: UpdateNode] (while executing)"
+      ],
+      "qps": 495.01,
+      "op_breakdown": {
+        "point_lookup": 11879,
+        "hop1": 7177,
+        "hop2": 4825,
+        "write": 5847
+      }
+    },
+    "40": {
+      "concurrency": 40,
+      "run_valid": true,
+      "workers_connected": 40,
+      "workers_failed_to_connect": 0,
+      "duration_sec": 60.112,
+      "successful_ops": 30431,
+      "failed_ops": 17,
+      "error_rate": 0.0006,
+      "runtime_errors": [
+        "[HTTP 409][ERR 1200] AQL: write-write conflict [node #6: UpdateNode] (while executing)",
+        "[HTTP 409][ERR 1200] AQL: write-write conflict [node #6: UpdateNode] (while executing)",
+        "[HTTP 409][ERR 1200] AQL: write-write conflict [node #6: UpdateNode] (while executing)",
+        "[HTTP 409][ERR 1200] AQL: write-write conflict [node #6: UpdateNode] (while executing)",
+        "[HTTP 409][ERR 1200] AQL: write-write conflict [node #6: UpdateNode] (while executing)"
+      ],
+      "qps": 506.24,
+      "op_breakdown": {
+        "point_lookup": 12334,
+        "hop1": 7249,
+        "hop2": 4818,
+        "write": 6030
+      }
+    }
+  }
+}
